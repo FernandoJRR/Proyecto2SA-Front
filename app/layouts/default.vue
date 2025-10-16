@@ -5,7 +5,10 @@
       class="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/90 backdrop-blur"
     >
       <div class="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-8">
-        <Menubar :model="menuModel" class="border-0 bg-transparent">
+        <Menubar
+          :model="filterMenuModel(menuModel)"
+          class="border-0 bg-transparent"
+        >
           <template #start>
             <div class="flex items-center gap-3 py-3">
               <Button
@@ -206,13 +209,21 @@ import Button from "primevue/button";
 import Sidebar from "primevue/sidebar";
 import Breadcrumb from "primevue/breadcrumb";
 import Menubar from "primevue/menubar";
+import { AppRoles } from "~/lib/auth/roles";
+import { LazyBreadcrumb } from "#components";
 
 const authStore = useAuthStore();
 const { logout } = authStore;
-const { user, authenticated } = storeToRefs(authStore);
+const { user, authenticated, rol: currentUserRole } = storeToRefs(authStore);
 
 const route = useRoute();
 const mobileOpen = ref(false);
+
+function filterMenuModel(menuModel: any) {
+  console.log("Current User Role:", currentUserRole);
+
+  return menuModel;
+}
 
 // Top Menubar model (supports nested menus)
 const menuModel = [
@@ -221,27 +232,88 @@ const menuModel = [
     label: "Entretenimiento",
     icon: "pi pi-film",
     items: [
-      { label: "Cines", icon: "pi pi-building", to: "/admin/hoteles" },
-      { label: "Peliculas", icon: "pi pi-verified", to: "/admin/restaurantes" },
+      {
+        label: "Cines",
+        icon: "pi pi-building",
+        to: "/cines",
+        accessRoles: [
+          AppRoles.ADMIN,
+          AppRoles.CINEMA_ADMIN,
+          AppRoles.CLIENT,
+          null,
+        ],
+      },
+      {
+        label: "Peliculas",
+        icon: "pi pi-verified",
+        to: "/peliculas",
+        accessRoles: [
+          AppRoles.ADMIN,
+          AppRoles.CINEMA_ADMIN,
+          AppRoles.CLIENT,
+          null,
+        ],
+      },
     ],
   },
   {
-    label: "Operación",
+    label: "Mis Compras",
+    icon: "pi pi-shopping-bag",
+    items: [
+      {
+        label: "Mis Compras",
+        icon: "pi pi-tags",
+        to: "/mis-compras",
+        accessRoles: [AppRoles.CLIENT],
+      },
+    ],
+  },
+  {
+    label: "Ventas",
     icon: "pi pi-briefcase",
     items: [
-      { label: "Reservaciones", icon: "pi pi-calendar", to: "/reservaciones" },
-      { label: "Órdenes", icon: "pi pi-shopping-cart", to: "/ordenes" },
-      { label: "Pagos", icon: "pi pi-wallet", to: "/facturacion" },
+      {
+        label: "Tickets Online",
+        icon: "pi pi-calendar",
+        to: "/tickets",
+        accessRoles: [AppRoles.CLIENT, AppRoles.CINEMA_ADMIN, AppRoles.ADMIN],
+      },
+      {
+        label: "Órdenes",
+        icon: "pi pi-shopping-cart",
+        to: "/ordenes",
+        accessRoles: [AppRoles.CLIENT, AppRoles.CINEMA_ADMIN, AppRoles.ADMIN],
+      },
     ],
   },
   {
     label: "Administración",
     icon: "pi pi-cog",
     items: [
-      { label: "Empleados", icon: "pi pi-id-card", to: "/admin/personal" },
-      { label: "Clientes", icon: "pi pi-users", to: "/clientes" },
-      { label: "Promociones", icon: "pi pi-percentage", to: "/promociones" },
-      { label: "Reportes", icon: "pi pi-chart-bar", to: "/reportes" },
+      {
+        label: "Empleados",
+        icon: "pi pi-id-card",
+        to: "/admin/personal",
+        accessRoles: [AppRoles.ADMIN, AppRoles.CINEMA_ADMIN],
+      },
+      {
+        label: "Clientes",
+        icon: "pi pi-users",
+        to: "/clientes",
+        accessRoles: [AppRoles.ADMIN],
+      },
+      {
+        label: "Promociones",
+        icon: "pi pi-percentage",
+        to: "/promociones",
+        accessRoles: [AppRoles.ADMIN, AppRoles.CINEMA_ADMIN],
+      },
+      {
+        label: "Reportes",
+        icon: "pi pi-chart-bar",
+        to: "/reportes",
+        accessRoles: [AppRoles.ADMIN],
+      },
     ],
   },
 ];

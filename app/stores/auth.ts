@@ -2,72 +2,75 @@ import { defineStore } from "pinia";
 import { toast } from "vue-sonner";
 import type { Employee } from "~/lib/api/admin/employee";
 
-export const AUTH_COOKIE_NAME = 'proyecto2sa-user-token'
+export const AUTH_COOKIE_NAME = "proyecto2sa-user-token";
 
 export interface User {
-  username: string
+  username: string;
+  userId: string;
 }
 
 export interface LoginPayload {
-  email: string,
-  password: string
+  email: string;
+  password: string;
 }
 
-export const useAuthStore = defineStore('auth', {
+export const useAuthStore = defineStore("auth", {
   persist: true,
   state: () => ({
     authenticated: false,
     loading: false,
     user: null as User | null,
+    rol: null as string | null,
     employee: null as Employee | null,
-    staffRoles: [] as any[]
+    staffRoles: [] as any[],
   }),
   actions: {
     async login(payload: LoginPayload) {
-      this.loading = true
+      this.loading = true;
 
-      const router = useRouter()
+      const router = useRouter();
 
       try {
-        const response = await $api<any>(
-          '/v1/auth/login',
-          {
-            method: 'POST',
-            body: payload
-          }
-        )
+        const response = await $api<any>("/v1/auth/login", {
+          method: "POST",
+          body: payload,
+        });
 
         // Exito
-        const tokenCookie = useCookie(AUTH_COOKIE_NAME)
-        tokenCookie.value = response?.token
+        const tokenCookie = useCookie(AUTH_COOKIE_NAME);
+        tokenCookie.value = response?.token;
 
-        this.user = {username: response?.username ?? null }
-        this.employee = response?.employee ?? null
-        this.authenticated = true
+        this.user = {
+          username: response?.userFullName ?? null,
+          userId: response?.userId ?? null,
+        };
+        this.rol = response?.role ?? null;
+        this.employee = response?.employee ?? null;
+        this.authenticated = true;
 
-        toast.success('Bienvenido!')
-        router.push('/')
+        toast.success("Bienvenido!");
+        router.push("/");
 
-        this.loading = false
-        return { response, error: false }
+        this.loading = false;
+        return { response, error: false };
       } catch (error: any) {
-        toast.error(error.message)
-        this.loading = false
-        return
+        toast.error(error.message);
+        this.loading = false;
+        return;
       }
     },
     async logout() {
-      this.loading = true
-      const tokenCookie = useCookie(AUTH_COOKIE_NAME)
-      tokenCookie.value = null
+      this.loading = true;
+      const tokenCookie = useCookie(AUTH_COOKIE_NAME);
+      tokenCookie.value = null;
 
-      this.user = null
-      this.employee = null
-      this.authenticated = false
+      this.user = null;
+      this.employee = null;
+      this.authenticated = false;
 
-      this.loading = false
-      const router = useRouter()
-      router.push('/login')
-    }
-  }
-})
+      this.loading = false;
+      const router = useRouter();
+      router.push("/login");
+    },
+  },
+});
