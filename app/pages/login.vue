@@ -45,6 +45,14 @@
                 <span v-if="!loading">Ingresar</span>
                 <span v-else>Ingresando…</span>
               </Button>
+              <div class="mt-4 grid grid-cols-2 gap-3">
+                <Button class="w-full p-button-outlined" severity="secondary" @click="goHome">
+                  Ir al inicio
+                </Button>
+                <Button class="w-full p-button-outlined" severity="contrast" @click="goRegister">
+                  Crear cuenta
+                </Button>
+              </div>
             </Form>
           </div>
         </div>
@@ -91,6 +99,13 @@ const onFormSubmit = async (e: any) => {
       loading.value = false
     }
   }
+}
+
+function goHome() {
+  navigateTo('/')
+}
+function goRegister() {
+  navigateTo('/register')
 }
 
 onMounted(() => {
