@@ -17,7 +17,11 @@ export function isAdmin(role: RoleName): boolean {
   return role === AppRoles.ADMIN;
 }
 
-export function hasAnyRole(role: RoleName, allowed: string[]): boolean {
+export function hasAnyRole(role: RoleName | null, allowed: any[]): boolean {
+  //Si el rol es nullo y el arreglo de permitidos incluye null, entonces retorna true
+  if (!role && allowed.includes(null)) {
+    return true;
+  }
   return !!role && allowed.includes(role);
 }
 

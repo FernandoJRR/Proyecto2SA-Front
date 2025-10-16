@@ -209,7 +209,7 @@ import Button from "primevue/button";
 import Sidebar from "primevue/sidebar";
 import Breadcrumb from "primevue/breadcrumb";
 import Menubar from "primevue/menubar";
-import { AppRoles } from "~/lib/auth/roles";
+import { AppRoles, hasAnyRole } from "~/lib/auth/roles";
 import { LazyBreadcrumb } from "#components";
 
 const authStore = useAuthStore();
@@ -220,9 +220,35 @@ const route = useRoute();
 const mobileOpen = ref(false);
 
 function filterMenuModel(menuModel: any) {
-  console.log("Current User Role:", currentUserRole);
-
-  return menuModel;
+  let filteredMenu = [];
+  console.log("Current User Role:", currentUserRole.value);
+  let access = hasAnyRole(currentUserRole.value, [
+    AppRoles.ADMIN,
+    AppRoles.CINEMA_ADMIN,
+    AppRoles.CLIENT,
+    null,
+  ]);
+  console.log("Access Check:", access);
+  for (const item of menuModel) {
+    if(item.label === "Inicio") {
+      filteredMenu.push(item);
+      continue;
+    }
+    let validSubItems = [];
+    for (const subItem of item.items || []) {
+      if (subItem.accessRoles) {
+        if (hasAnyRole(currentUserRole.value, subItem.accessRoles)) {
+          validSubItems.push(subItem);
+        }
+      } else {
+        validSubItems.push(subItem);
+      }
+    }
+    if (validSubItems.length > 0) {
+      filteredMenu.push({ ...item, items: validSubItems });
+    }
+  }
+  return filteredMenu;
 }
 
 // Top Menubar model (supports nested menus)
