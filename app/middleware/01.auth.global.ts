@@ -3,21 +3,13 @@ import { toast } from 'vue-sonner'
 import { canAccessAdmin, canAccessReservaciones, canAccessOrdenes, canAccessReportes, getRoleNameFromEmployee } from "~/lib/auth/roles";
 
 export default defineNuxtRouteMiddleware((to, _from) => {
-  if (to.path === '/example') return
+  //if (to.path === '/example') return
 
-  if(to.fullPath.includes('public')) return
-  if(to.fullPath.includes('juegos')) return
+  //if(to.fullPath.includes('public')) return
+  //if(to.fullPath.includes('juegos')) return
 
-  const token = useCookie('proyecto1sa-user-token')
+  const token = useCookie(AUTH_COOKIE_NAME)
 
-  if (!token.value && !to?.fullPath.includes('login')) {
-    toast.error("Debes loguearte para acceder al sitio")
-    return navigateTo('/login')
-  }
-
-  if (token.value && to.fullPath.includes('login')) {
-    return navigateTo('/')
-  }
 
   if (import.meta.client) {
     const auth = useAuthStore()

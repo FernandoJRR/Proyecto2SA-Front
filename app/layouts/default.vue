@@ -10,8 +10,8 @@
                                 @click="mobileOpen = true" />
                             <RouterLink to="/" class="flex items-center">
                                 <span
-                                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-white font-bold">CD</span>
-                                <span class="text-slate-900 font-extrabold tracking-tight">Comer y Dormir · Admin</span>
+                                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-white font-bold">C</span>
+                                <span class="text-slate-900 font-extrabold tracking-tight">Cines</span>
                             </RouterLink>
                         </div>
                     </template>
@@ -19,6 +19,9 @@
                         <div class="hidden lg:flex items-center">
                             <RouterLink to="/perfil">
                                 <Button severity="secondary" variant="text"><i class="pi pi-user" /> Ver Perfil</Button>
+                            </RouterLink>
+                            <RouterLink to="/login">
+                                <Button variant="text" @click="logout"><i class="pi pi-sign-in" /> Iniciar Sesión</Button>    
                             </RouterLink>
                             <Button variant="text" @click="logout"><i class="pi pi-sign-out" /> Cerrar Sesión</Button>
                         </div>
@@ -43,7 +46,7 @@
                 <div class="flex items-center gap-2">
                     <span
                         class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-white font-bold">CD</span>
-                    <span class="text-slate-900 font-bold">Comer y Dormir · Admin</span>
+                    <span class="text-slate-900 font-bold">Cine</span>
                 </div>
             </template>
 
@@ -58,18 +61,18 @@
                     </li>
 
                     <li class="mt-1">
-                        <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-500">Establecimientos</p>
+                        <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-500">Entretenimiento</p>
                         <ul class="ml-3 space-y-1 border-l border-slate-200 pl-3">
                             <li>
                                 <RouterLink to="/admin/hoteles" @click="mobileOpen = false"
                                     class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-50 hover:text-slate-900">
-                                    <i class="pi pi-building" /><span>Hoteles</span>
+                                    <i class="pi pi-building" /><span>Cines</span>
                                 </RouterLink>
                             </li>
                             <li>
                                 <RouterLink to="/admin/restaurantes" @click="mobileOpen = false"
                                     class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-50 hover:text-slate-900">
-                                    <i class="pi pi-verified" /><span>Restaurantes</span>
+                                    <i class="pi pi-verified" /><span>Peliculas</span>
                                 </RouterLink>
                             </li>
                         </ul>
@@ -150,10 +153,10 @@ const mobileOpen = ref(false)
 const menuModel = [
     { label: 'Inicio', icon: 'pi pi-home', to: '/' },
     {
-        label: 'Establecimientos', icon: 'pi pi-building',
+        label: 'Entretenimiento', icon: 'pi pi-film',
         items: [
-            { label: 'Hoteles', icon: 'pi pi-building', to: '/admin/hoteles' },
-            { label: 'Restaurantes', icon: 'pi pi-verified', to: '/admin/restaurantes' },
+            { label: 'Cines', icon: 'pi pi-building', to: '/admin/hoteles' },
+            { label: 'Peliculas', icon: 'pi pi-verified', to: '/admin/restaurantes' },
         ]
     },
     {

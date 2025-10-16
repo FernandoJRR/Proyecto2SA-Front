@@ -4,47 +4,88 @@
     <header class="max-w-7xl mx-auto mb-8">
       <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">Panel administrativo</h1>
-          <p class="text-slate-600">Bienvenido, <span class="font-semibold">{{ user?.username }}</span>. Elige una sección para continuar.</p>
+          <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+            Cartelera y Cines
+          </h1>
+          <p class="text-slate-600">
+            Explora las películas disponibles y los cines donde puedes verlas.
+          </p>
         </div>
-        <div class="w-full sm:w-auto">
-          <IconField class="w-full sm:w-80">
-            <InputIcon class="pi pi-search" />
-            <InputText v-model.trim="q" placeholder="Buscar módulos…" class="w-full" :pt="{ root: { class: 'pl-10' } }" />
-          </IconField>
-        </div>
+
       </div>
     </header>
 
     <!-- Content -->
     <main class="max-w-7xl mx-auto" role="main">
-      <!-- Meta: count and quick-actions (optional) -->
+      <!-- Meta: count -->
       <div class="flex items-center justify-between mb-4 text-sm text-slate-600">
-        <div>
-          <span class="font-semibold">{{ filteredMenus.length }}</span>
-          {{ filteredMenus.length === 1 ? 'módulo' : 'módulos' }} disponibles
+        <div v-if="!pending">
+          <span class="font-semibold">{{ totalMovies }}</span>
+          {{ totalMovies === 1 ? 'película' : 'películas' }} en cartelera ·
+          <span class="font-semibold">{{ filteredCinemas.length }}</span>
+          {{ filteredCinemas.length === 1 ? 'cine' : 'cines' }}
         </div>
-        <!-- Placeholder for future quick actions -->
-        <div class="hidden sm:flex items-center gap-2">
-          <!-- Example: add a quick report button later -->
-          <!-- <Button label="Nuevo reporte" size="small" icon="pi pi-plus" /> -->
-        </div>
+        <div v-else class="text-slate-500">Cargando cartelera…</div>
       </div>
 
-      <!-- Responsive Grid for many cards -->
+      <!-- Grid of Cinemas -->
       <div
-        v-if="filteredMenus.length"
-        class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
+        v-if="filteredCinemas.length"
+        class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
       >
-        <template v-for="menu in filteredMenus" :key="menu.route">
-          <MenuShortcutCard :menu="menu" />
-        </template>
+        <section
+          v-for="cinema in filteredCinemas"
+          :key="cinema.id"
+          class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"
+        >
+          <!-- Cinema header -->
+          <div class="p-5 border-b border-slate-100">
+            <h2 class="text-lg font-bold text-slate-900">{{ cinema.name }}</h2>
+            <p class="text-slate-600 text-sm">
+              {{ cinema.address }} · {{ cinema.rooms }} salas
+            </p>
+          </div>
+
+          <!-- Now Playing -->
+          <div class="p-5">
+            <h3 class="text-sm font-semibold text-slate-800 mb-3">En este cine</h3>
+
+            <div v-if="cinema.nowPlaying &amp;&amp; cinema.nowPlaying.length" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <article
+                v-for="movie in cinema.nowPlaying"
+                :key="movie.id"
+                class="group rounded-lg border border-slate-200 hover:shadow-md transition overflow-hidden bg-slate-50"
+              >
+                <NuxtLink :to="`/peliculas/${movie.id}`" class="block">
+                  <div class="aspect-[2/3] bg-slate-200 overflow-hidden">
+                    <img
+                      :src="movie.urlImage"
+                      :alt="movie.title"
+                      class="w-full h-full object-cover group-hover:scale-[1.02] transition"
+                      loading="lazy"
+                    />
+                  </div>
+                  <div class="p-3">
+                    <h4 class="text-sm font-semibold text-slate-900 line-clamp-2">
+                      {{ movie.title }}
+                    </h4>
+                    <p class="text-xs text-slate-600 mt-1">
+                      {{ movie.duration }} min · {{ movie.classification?.name || 'Clasificación' }}
+                    </p>
+                  </div>
+                </NuxtLink>
+              </article>
+            </div>
+
+            <div v-else class="text-sm text-slate-500">Sin funciones asignadas.</div>
+          </div>
+        </section>
       </div>
 
       <!-- Empty state -->
       <div v-else class="flex flex-col items-center justify-center py-20 text-center">
         <i class="pi pi-inbox text-4xl mb-3 text-slate-400" aria-hidden="true"></i>
-        <h2 class="text-lg font-semibold text-slate-800">No se encontraron módulos</h2>
+        <h2 class="text-lg font-semibold text-slate-800">No hay resultados</h2>
         <p class="text-slate-600">Intenta con otro término de búsqueda.</p>
       </div>
     </main>
@@ -52,66 +93,127 @@
 </template>
 
 <script setup lang="ts">
-import MenuShortcutCard from "~/components/cards/MenuShortcutCard.vue";
-import IconField from 'primevue/iconfield';
-import InputIcon from 'primevue/inputicon';
-import InputText from 'primevue/inputtext';
-import { getRoleNameFromEmployee, canAccessAdmin, canAccessOrdenes, canAccessReservaciones, canAccessReportes } from "~/lib/auth/roles";
 
-const { user, employee } = storeToRefs(useAuthStore());
-const role = computed(() => getRoleNameFromEmployee(employee.value));
+/**
+ * Tipos que reflejan el DTO del backend (MovieResponseDTO).
+ * Se definen aquí para tipado en el frontend.
+ */
+type UUID = string
 
-// Search
-const q = ref('');
-
-// Base menus (can grow safely)
-const menus = reactive([
-  {
-    title: "Administracion",
-    description: "Administracion General",
-    route: "/admin",
-  },
-  {
-    title: "Ordenes",
-    description: "Administracion de Ordenes",
-    route: "/ordenes",
-  },
-  {
-    title: "Reservaciones",
-    description: "Administracion de Reservaciones",
-    route: "/reservaciones",
-  },
-  {
-    title: "Pagos",
-    description: "Administracion de Facturas",
-    route: "/facturacion",
-  },
-  {
-    title: "Reportes",
-    description: "Generación de Repotes",
-    route: "/reportes",
-  },
-]);
-
-function canSeeRoute(route: string): boolean {
-  if (route.startsWith('/admin')) return canAccessAdmin(role.value)
-  if (route.startsWith('/ordenes')) return canAccessOrdenes(role.value)
-  if (route.startsWith('/reservaciones')) return canAccessReservaciones(role.value)
-  if (route.startsWith('/reportes')) return canAccessReportes(role.value)
-  return true
+interface ClassificationViewResponseDTO {
+  id: UUID
+  name: string
+  code?: string
 }
 
-const filteredMenus = computed(() => {
-  const term = q.value.toLowerCase();
-  const base = menus.filter(m => canSeeRoute(m.route))
-  if (!term) return base
-  return base.filter(m =>
-    m.title.toLowerCase().includes(term) ||
-    m.description.toLowerCase().includes(term) ||
-    m.route.toLowerCase().includes(term)
-  )
-});
+interface CategoryViewResponseDTO {
+  id: UUID
+  name: string
+}
 
-// Expose for debugging
-defineExpose({ menus, filteredMenus });
+interface MovieResponseDTO {
+  id: UUID
+  title: string
+  duration: number
+  sinopsis: string
+  classificationId: UUID
+  director: string
+  casting: string
+  urlImage: string
+  active: boolean
+  createdAt: string
+  updatedAt: string
+  classification?: ClassificationViewResponseDTO | null
+  categories: CategoryViewResponseDTO[]
+}
+
+/** Modelo para cines (datos falsos mientras tanto). */
+interface Cinema {
+  id: string
+  name: string
+  address: string
+  rooms: number
+  nowPlayingIds: UUID[] // IDs de películas asignadas a este cine
+}
+
+/** Búsqueda */
+const q = ref('')
+
+/** Películas desde el backend (usa tu endpoint real si es distinto). */
+const { data: movies, pending } = useFetch<MovieResponseDTO[]>('/api/movies', {
+  default: () => [],
+})
+
+/** Datos falsos de cines (puedes mover esto a un JSON o API luego). */
+const cinemas = reactive<Cinema[]>([
+  {
+    id: 'cin-1',
+    name: 'Cine Xela Centro',
+    address: 'Zona 1, Quetzaltenango',
+    rooms: 6,
+    nowPlayingIds: [],
+  },
+  {
+    id: 'cin-2',
+    name: 'Cine Utatlán',
+    address: 'Centro Comercial Utatlán',
+    rooms: 8,
+    nowPlayingIds: [],
+  },
+  {
+    id: 'cin-3',
+    name: 'Cine Interplaza',
+    address: 'Interplaza Xela',
+    rooms: 5,
+    nowPlayingIds: [],
+  },
+])
+
+/**
+ * Asigna de forma simple algunas películas a cada cine (mientras tanto).
+ * Cuando lleguen las funciones reales, reemplaza por showtimes desde el backend.
+ */
+watchEffect(() => {
+  const list = movies.value || []
+  if (!list.length) return
+
+  cinemas.forEach((c, idx) => {
+    // Selección determinística pero simple: alterna películas por índice
+    const step = Math.max(1, Math.floor(list.length / (2 + (idx % 2))))
+    c.nowPlayingIds = list.filter((_, i) => (i + idx) % step === 0).slice(0, 6).map(m => m.id)
+  })
+})
+
+/** Cinemas con las películas resueltas */
+const cinemasResolved = computed(() => {
+  const map = new Map((movies.value || []).map(m => [m.id, m]))
+  return cinemas.map(c => ({
+    ...c,
+    nowPlaying: c.nowPlayingIds.map(id => map.get(id)).filter(Boolean) as MovieResponseDTO[],
+  }))
+})
+
+/** Búsqueda por texto sobre cines y películas */
+const filteredCinemas = computed(() => {
+  const term = q.value.trim().toLowerCase()
+  if (!term) return cinemasResolved.value
+
+  return cinemasResolved.value
+    .map(c => {
+      const inCinema = c.name.toLowerCase().includes(term) || c.address.toLowerCase().includes(term)
+      const moviesMatched = c.nowPlaying.filter(m =>
+        m.title.toLowerCase().includes(term) ||
+        (m.classification?.name?.toLowerCase() || '').includes(term)
+      )
+      return inCinema ? { ...c, nowPlaying: c.nowPlaying } : { ...c, nowPlaying: moviesMatched }
+    })
+    .filter(c => c.nowPlaying.length > 0 || c.name.toLowerCase().includes(term))
+})
+
+/** Total de películas únicas mostradas (para el meta de la vista) */
+const totalMovies = computed(() => {
+  const set = new Set<UUID>()
+  filteredCinemas.value.forEach(c => c.nowPlaying.forEach(m => set.add(m.id)))
+  return set.size
+})
 </script>

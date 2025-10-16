@@ -13,7 +13,7 @@ function getCookie(name: string): string | null {
 export const $api = $fetch.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
   onRequest({ options }) {
-    const userAuth = getCookie('proyecto1sa-user-token')
+    const userAuth = getCookie(AUTH_COOKIE_NAME)
     options.headers.set('Authorization', userAuth ? `Bearer ${userAuth}` : '')
   },
   async onResponseError({ response }) {

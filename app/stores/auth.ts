@@ -2,12 +2,14 @@ import { defineStore } from "pinia";
 import { toast } from "vue-sonner";
 import type { Employee } from "~/lib/api/admin/employee";
 
+export const AUTH_COOKIE_NAME = 'proyecto2sa-user-token'
+
 export interface User {
   username: string
 }
 
 export interface LoginPayload {
-  username: string,
+  email: string,
   password: string
 }
 
@@ -28,7 +30,7 @@ export const useAuthStore = defineStore('auth', {
 
       try {
         const response = await $api<any>(
-          '/v1/login',
+          '/v1/auth/login',
           {
             method: 'POST',
             body: payload
@@ -36,7 +38,7 @@ export const useAuthStore = defineStore('auth', {
         )
 
         // Exito
-        const tokenCookie = useCookie('proyecto1sa-user-token')
+        const tokenCookie = useCookie(AUTH_COOKIE_NAME)
         tokenCookie.value = response?.token
 
         this.user = {username: response?.username ?? null }
@@ -56,7 +58,7 @@ export const useAuthStore = defineStore('auth', {
     },
     async logout() {
       this.loading = true
-      const tokenCookie = useCookie('proyecto1sa-user-token')
+      const tokenCookie = useCookie(AUTH_COOKIE_NAME)
       tokenCookie.value = null
 
       this.user = null
