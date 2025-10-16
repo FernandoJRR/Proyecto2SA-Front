@@ -93,111 +93,32 @@
               <span>Inicio</span>
             </RouterLink>
           </li>
-
-          <li class="mt-1">
-            <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-500">
-              Entretenimiento
-            </p>
-            <ul class="ml-3 space-y-1 border-l border-slate-200 pl-3">
-              <li>
-                <RouterLink
-                  to="/admin/hoteles"
-                  @click="mobileOpen = false"
-                  class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-50 hover:text-slate-900"
-                >
-                  <i class="pi pi-building" /><span>Cines</span>
-                </RouterLink>
-              </li>
-              <li>
-                <RouterLink
-                  to="/admin/restaurantes"
-                  @click="mobileOpen = false"
-                  class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-50 hover:text-slate-900"
-                >
-                  <i class="pi pi-verified" /><span>Peliculas</span>
-                </RouterLink>
-              </li>
-            </ul>
-          </li>
-
-          <li class="mt-1">
-            <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-500">
-              Operación
-            </p>
-            <ul class="ml-3 space-y-1 border-l border-slate-200 pl-3">
-              <li>
-                <RouterLink
-                  to="/reservaciones"
-                  @click="mobileOpen = false"
-                  class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-50 hover:text-slate-900"
-                >
-                  <i class="pi pi-calendar" /><span>Reservaciones</span>
-                </RouterLink>
-              </li>
-              <li>
-                <RouterLink
-                  to="/ordenes"
-                  @click="mobileOpen = false"
-                  class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-50 hover:text-slate-900"
-                >
-                  <i class="pi pi-shopping-cart" /><span>Órdenes</span>
-                </RouterLink>
-              </li>
-              <li>
-                <RouterLink
-                  to="/facturacion"
-                  @click="mobileOpen = false"
-                  class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-50 hover:text-slate-900"
-                >
-                  <i class="pi pi-wallet" /><span>Pagos</span>
-                </RouterLink>
-              </li>
-            </ul>
-          </li>
-
-          <li class="mt-1">
-            <p class="px-3 py-2 text-xs uppercase tracking-wide text-slate-500">
-              Administración
-            </p>
-            <ul class="ml-3 space-y-1 border-l border-slate-200 pl-3">
-              <li>
-                <RouterLink
-                  to="/admin/personal"
-                  @click="mobileOpen = false"
-                  class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-50 hover:text-slate-900"
-                >
-                  <i class="pi pi-id-card" /><span>Empleados</span>
-                </RouterLink>
-              </li>
-              <li>
-                <RouterLink
-                  to="/clientes"
-                  @click="mobileOpen = false"
-                  class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-50 hover:text-slate-900"
-                >
-                  <i class="pi pi-users" /><span>Clientes</span>
-                </RouterLink>
-              </li>
-              <li>
-                <RouterLink
-                  to="/promociones"
-                  @click="mobileOpen = false"
-                  class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-50 hover:text-slate-900"
-                >
-                  <i class="pi pi-percentage" /><span>Promociones</span>
-                </RouterLink>
-              </li>
-              <li>
-                <RouterLink
-                  to="/reportes"
-                  @click="mobileOpen = false"
-                  class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-50 hover:text-slate-900"
-                >
-                  <i class="pi pi-chart-bar" /><span>Reportes</span>
-                </RouterLink>
-              </li>
-            </ul>
-          </li>
+          <template
+            v-for="menuItem in filterMenuModel(menuModel)"
+            :key="menuItem.label"
+          >
+            <li v-if="menuItem.verticalBar" class="mt-1">
+              <p
+                class="px-3 py-2 text-xs uppercase tracking-wide text-slate-500"
+              >
+                {{ menuItem.label }}
+              </p>
+              <ul
+                v-if="menuItem.items"
+                class="ml-3 space-y-1 border-l border-slate-200 pl-3"
+              >
+                <li v-for="subItem in menuItem.items" :key="subItem.label">
+                  <RouterLink
+                    :to="subItem.to"
+                    @click="mobileOpen = false"
+                    class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+                  >
+                    <i :class="subItem.icon" /><span>{{ subItem.label }}</span>
+                  </RouterLink>
+                </li>
+              </ul>
+            </li>
+          </template>
         </ul>
       </nav>
     </Sidebar>
@@ -230,7 +151,10 @@ function filterMenuModel(menuModel: any) {
   ]);
   console.log("Access Check:", access);
   for (const item of menuModel) {
-    if(item.label === "Inicio") {
+    if (!item.horizontalBar) {
+      continue;
+    }
+    if (item.label === "Inicio") {
       filteredMenu.push(item);
       continue;
     }
@@ -253,8 +177,16 @@ function filterMenuModel(menuModel: any) {
 
 // Top Menubar model (supports nested menus)
 const menuModel = [
-  { label: "Inicio", icon: "pi pi-home", to: "/" },
   {
+    horizontalBar: true,
+    verticalBar: false,
+    label: "Inicio",
+    icon: "pi pi-home",
+    to: "/",
+  },
+  {
+    horizontalBar: true,
+    verticalBar: true,
     label: "Entretenimiento",
     icon: "pi pi-film",
     items: [
@@ -283,6 +215,8 @@ const menuModel = [
     ],
   },
   {
+    horizontalBar: true,
+    verticalBar: true,
     label: "Mis Compras",
     icon: "pi pi-shopping-bag",
     items: [
@@ -295,6 +229,8 @@ const menuModel = [
     ],
   },
   {
+    horizontalBar: true,
+    verticalBar: true,
     label: "Ventas",
     icon: "pi pi-briefcase",
     items: [
@@ -313,6 +249,8 @@ const menuModel = [
     ],
   },
   {
+    horizontalBar: true,
+    verticalBar: true,
     label: "Administración",
     icon: "pi pi-cog",
     items: [
