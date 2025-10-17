@@ -1,3 +1,5 @@
+import type { Page } from "../utils/paginated";
+
 export type UUID = string;
 
 export interface Prices {
@@ -9,6 +11,8 @@ export interface Prices {
   createdAt: string;
   updatedAt: string;
 }
+
+export type PricesPage = Page<Prices>;
 
 const API_BASE = "/v1/prices";
 
@@ -37,8 +41,8 @@ export const getByCinemaId = async (cinemaId: UUID): Promise<Prices> => {
   });
 };
 
-export const getAll = async (): Promise<Prices[]> => {
-  return await $api<Prices[]>(`${API_BASE}`, {
+export const getAll = async (): Promise<PricesPage> => {
+  return await $api<PricesPage>(`${API_BASE}/all`, {
     method: "GET",
   });
 };

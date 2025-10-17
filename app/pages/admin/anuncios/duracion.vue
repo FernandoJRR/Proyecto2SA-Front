@@ -12,8 +12,7 @@
             Duraciones de anuncios
           </h1>
           <p class="text-slate-600">
-            Administra la cantidad de <strong>días</strong> disponibles para la
-            duración de anuncios.
+            Administra la cantidad de <strong>días</strong> disponibles para la duración de anuncios.
           </p>
         </div>
         <div class="flex items-center gap-2">
@@ -105,12 +104,9 @@
               inputId="days"
               class="w-full"
             />
-            <small v-if="errors.days" class="text-red-600">{{
-              errors.days
-            }}</small>
+            <small v-if="errors.days" class="text-red-600">{{ errors.days }}</small>
             <p v-if="isEditing" class="mt-2 text-xs text-slate-500">
-              Nota: no existe endpoint de actualización; se recreará el registro
-              con el nuevo valor.
+              Nota: no existe endpoint de actualización; se recreará el registro con el nuevo valor.
             </p>
           </div>
         </div>
@@ -152,7 +148,7 @@ import {
   getAll,
   create,
   deleteById,
-  type DurationDays,
+  type DurationDays
 } from "~/lib/api/anuncios/duration";
 
 const confirm = useConfirm();
@@ -228,9 +224,7 @@ async function save() {
       try {
         await deleteById(editingId.value);
       } catch (e: any) {
-        toast.warning(
-          "Se creó el nuevo registro, pero no se pudo eliminar el anterior."
-        );
+        toast.warning("Se creó el nuevo registro, pero no se pudo eliminar el anterior.");
       }
       toast.success(`Duración guardada (${created.days} días)`);
     } else {
@@ -281,10 +275,7 @@ function formatDate(iso?: string) {
       d = new Date(noFrac);
     }
     if (isNaN(d.getTime())) return iso;
-    return d.toLocaleString(undefined, {
-      dateStyle: "medium",
-      timeStyle: "short",
-    });
+    return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
   } catch {
     return iso;
   }

@@ -21,13 +21,20 @@
             v-model.trim="q"
             placeholder="Buscar por nombre…"
             class="w-72"
-            @keydown.enter="runSearch"
+            @keydown.enter="() => runSearch()"
           />
           <Button
             icon="pi pi-search"
             label="Buscar"
-            @click="runSearch"
+            @click="() => runSearch()"
             :loading="loading"
+          />
+          <Button
+            icon="pi pi-filter-slash"
+            label="Limpiar"
+            severity="secondary"
+            outlined
+            @click="resetFilters"
           />
           <Button
             icon="pi pi-plus"
@@ -236,6 +243,11 @@ async function runSearch() {
   } finally {
     loading.value = false;
   }
+}
+
+function resetFilters() {
+  q.value = "";
+  runSearch();
 }
 
 async function save() {

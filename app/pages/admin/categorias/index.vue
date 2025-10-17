@@ -29,6 +29,13 @@
             :loading="loading"
           />
           <Button
+            icon="pi pi-filter-slash"
+            label="Limpiar"
+            severity="secondary"
+            outlined
+            @click="resetFilters"
+          />
+          <Button
             icon="pi pi-plus"
             label="Nueva"
             class="p-button-success"
@@ -204,6 +211,11 @@ async function runSearch() {
   } finally {
     loading.value = false;
   }
+}
+
+function resetFilters() {
+  q.value = '';
+  runSearch();
 }
 
 async function save() {
