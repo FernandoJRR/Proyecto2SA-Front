@@ -157,8 +157,9 @@ async function loadMovie() {
     const resp = await getMovieById(id)
     movie.value = resp
     useHead({ title: `${resp.title} · Película` })
-  } catch (e) {
+  } catch (e: any) {
     movie.value = null
+    toast.error(e?.message)
   } finally {
     loading.value = false
   }
@@ -179,8 +180,8 @@ async function toggleActive() {
     toggling.value = true
     await tooggleMovieActive(movie.value.id)
     movie.value = { ...movie.value, active: !movie.value.active }
-  } catch (e) {
-    toast.error('No se pudo cambiar el estado de la película')
+  } catch (e: any) {
+    toast.error(e?.message)
   } finally {
     toggling.value = false
   }
