@@ -127,6 +127,18 @@ const menus = reactive([
     route: "/admin/anuncios/duracion",
     permitedRoles: [AppRoles.ADMIN],
   },
+  {
+    title: "Categorías",
+    description: "Gestión de Categorías para Películas",
+    route: "/admin/categorias",
+    permitedRoles: [AppRoles.ADMIN],
+  },
+  {
+    title: "Clasificaciones",
+    description: "Gestión de Clasificaciones para Películas",
+    route: "/admin/clasificaciones",
+    permitedRoles: [AppRoles.ADMIN],
+  },
 ]);
 
 const filteredMenus = computed(() => {
