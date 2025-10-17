@@ -5,10 +5,7 @@
       class="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/90 backdrop-blur"
     >
       <div class="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-8">
-        <Menubar
-          :model="menuModelBound"
-          class="border-0 bg-transparent"
-        >
+        <Menubar :model="menuModelBound" class="border-0 bg-transparent">
           <template #start>
             <div class="flex items-center gap-3 py-3">
               <Button
@@ -142,18 +139,18 @@ const mobileOpen = ref(false);
 
 function bindCommands(items: any[]): any[] {
   return (items || []).map((item) => {
-    const next: any = { ...item }
+    const next: any = { ...item };
     if (next.to) {
-      next.command = () => navigateTo(next.to)
+      next.command = () => navigateTo(next.to);
     }
     if (Array.isArray(next.items) && next.items.length) {
-      next.items = bindCommands(next.items)
+      next.items = bindCommands(next.items);
     }
-    return next
-  })
+    return next;
+  });
 }
 
-const menuModelBound = computed(() => bindCommands(filterMenuModel(menuModel)))
+const menuModelBound = computed(() => bindCommands(filterMenuModel(menuModel)));
 
 function filterMenuModel(menuModel: any) {
   let filteredMenu = [];
@@ -244,6 +241,26 @@ const menuModel = [
   {
     horizontalBar: true,
     verticalBar: true,
+    label: "Anuncios",
+    icon: "pi pi-bullhorn",
+    items: [
+      {
+        label: "Crear Anuncio",
+        icon: "pi pi-plus-circle",
+        to: "/anuncios/crear",
+        accessRoles: [AppRoles.SPONSOR, AppRoles.ADMIN],
+      },
+      {
+        label: "Mis Anuncios",
+        icon: "pi pi-list",
+        to: "/anuncios/mis-anuncios",
+        accessRoles: [AppRoles.SPONSOR, AppRoles.ADMIN],
+      },
+    ],
+  },
+  {
+    horizontalBar: true,
+    verticalBar: true,
     label: "Mis Compras",
     icon: "pi pi-shopping-bag",
     items: [
@@ -286,7 +303,7 @@ const menuModel = [
         icon: "pi pi-chart-line",
         to: "/admin",
         accessRoles: [AppRoles.ADMIN, AppRoles.CINEMA_ADMIN],
-      }
+      },
     ],
   },
 ];
