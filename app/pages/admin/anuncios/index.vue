@@ -185,6 +185,13 @@
                   :loading="deletingId === data.id"
                   @click="() => confirmDelete(data)"
                 />
+                <NuxtLink
+                  :to="`/admin/anuncios/previsualizar/${data.id}`"
+                  class="p-button p-component p-button-text p-button-sm"
+                >
+                  <i class="pi pi-eye mr-2"></i>
+                  Ver
+                </NuxtLink>
               </div>
             </template>
           </Column>
