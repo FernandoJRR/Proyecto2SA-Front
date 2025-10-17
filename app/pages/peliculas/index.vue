@@ -182,7 +182,6 @@ import InputSwitch from "primevue/inputswitch";
 import Button from "primevue/button";
 
 import {
-  getAllPaginated,
   searchMovies,
   type MovieResponseDTO,
 } from "~/lib/api/movies/movie";
@@ -195,6 +194,7 @@ import {
   type CategoryResponseDTO,
 } from "~/lib/api/movies/category";
 import { isAdmin as isAdminRole } from "~/lib/auth/roles";
+import { toast } from 'vue-sonner'
 
 const authStore = useAuthStore();
 const { rol: currentUserRole } = storeToRefs(authStore);
@@ -230,14 +230,16 @@ const categories = ref<CategoryResponseDTO[]>([]);
 async function loadFiltersData() {
   try {
     classifications.value = await getAllClassifications();
-  } catch {
+  } catch (e: any) {
     classifications.value = [];
+    toast.error(e?.message);
   }
   try {
     // vacío => el backend devuelve todo
     categories.value = await searchCategoriesByName("");
-  } catch {
+  } catch (e: any) {
     categories.value = [];
+    toast.error(e?.message);
   }
 }
 
@@ -249,15 +251,16 @@ async function applyFilters(p = 0) {
       title: filters.title || null,
       classificationId: filters.classificationId || null,
       categoryIds: filters.categoryIds.length ? filters.categoryIds : null,
-      active: filters.active,
+      active: isAdmin.value ? filters.active : null,
     };
     const resp = await searchMovies(query, p);
     movies.value = resp.content;
     totalElements.value = resp.totalElements;
     page.value = resp.number;
-  } catch (e) {
+  } catch (e: any) {
     movies.value = [];
     totalElements.value = 0;
+    toast.error(e?.message);
   } finally {
     loading.value = false;
   }

@@ -171,8 +171,9 @@ async function loadCategories(q: string | null) {
   try {
     // Si q es null o vacío, el backend devuelve todo
     categories.value = await searchCategoriesByName(q ?? '')
-  } catch {
+  } catch (e: any) {
     categories.value = []
+    toast.error(e?.message)
   }
 }
 
@@ -180,8 +181,9 @@ async function loadCategories(q: string | null) {
 onMounted(async () => {
   try {
     classifications.value = await getAllClassifications()
-  } catch {
+  } catch (e: any) {
     classifications.value = []
+    toast.error(e?.message)
   }
   await loadCategories('')
 })
@@ -242,8 +244,8 @@ async function onSubmit() {
     const created = await createMovie(payload)
     toast.success(`Película "${created.title}" creada`)
     router.push(`/peliculas/${created.id}`)
-  } catch (err) {
-    toast.error('No fue posible crear la película')
+  } catch (e: any) {
+    toast.error(e?.message)
   } finally {
     loading.value = false
   }

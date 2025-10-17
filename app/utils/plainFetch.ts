@@ -1,8 +1,8 @@
 function getCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null;
-  const cookies = document.cookie.split('; ');
+  if (typeof document === "undefined") return null;
+  const cookies = document.cookie.split("; ");
   for (const cookie of cookies) {
-    const [key, value] = cookie.split('=');
+    const [key, value] = cookie.split("=");
     if (key === name) {
       return decodeURIComponent(value);
     }
@@ -13,26 +13,28 @@ function getCookie(name: string): string | null {
 export const $api = $fetch.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
   onRequest({ options }) {
-    const userAuth = getCookie(AUTH_COOKIE_NAME)
-    options.headers.set('Authorization', userAuth ? `Bearer ${userAuth}` : '')
+    const userAuth = getCookie(AUTH_COOKIE_NAME);
+    options.headers.set("Authorization", userAuth ? `Bearer ${userAuth}` : "");
   },
   async onResponseError({ response }) {
-    const errorData = await response._data
-    console.error('API Error:', response)
+    const errorData = await response._data;
+    console.error("API Error:", response);
 
     throw createError({
       statusCode: response.status,
-      message: errorData?.message || 'Ha ocurrido un error'
-    })
+      // Response contiene una lista de los errores en messages
+      // Se concatena en un solo string con saltos de línea
+      message: errorData?.messages?.join("\n") || "Ha ocurrido un error",
+    });
   },
   async onRequestError({ request }) {
-    console.error('API Error:', request)
+    console.error("API Error:", request);
 
     throw createError({
-      message: 'Ha ocurrido un error'
-    })
-  }
-})
+      message: "Ha ocurrido un error",
+    });
+  },
+});
 
 /**
  * Cliente para multipart/form-data.
@@ -42,28 +44,31 @@ export const $api = $fetch.create({
 export const $apiMultipart = $fetch.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
   onRequest({ options }) {
-    const userAuth = getCookie(AUTH_COOKIE_NAME)
+    const userAuth = getCookie(AUTH_COOKIE_NAME);
     // No seteamos 'Content-Type' aquí. Solo Authorization.
-    options.headers.set('Authorization', userAuth ? `Bearer ${userAuth}` : '')
+    options.headers.set("Authorization", userAuth ? `Bearer ${userAuth}` : "");
   },
   async onResponseError({ response }) {
-    const errorData = await response._data
-    console.error('API Error (multipart):', response)
+    const errorData = await response._data;
+    console.error("API Error (multipart):", response);
 
     throw createError({
       statusCode: response.status,
-      message: errorData?.message || 'Ha ocurrido un error al subir datos'
-    })
+      // Response contiene una lista de los errores en messages
+      // Se concatena en un solo string con saltos de línea
+      message:
+        errorData?.messages?.join("\n") ||
+        "Ha ocurrido un error al procesar la solicitud",
+    });
   },
   async onRequestError({ request }) {
-    console.error('API Error (multipart):', request)
+    console.error("API Error (multipart):", request);
 
     throw createError({
-      message: 'Ha ocurrido un error al preparar la solicitud'
-    })
-  }
-})
-
+      message: "Ha ocurrido un error al preparar la solicitud",
+    });
+  },
+});
 
 export const genParams = (objectParams: any): string => {
   if (!objectParams) return "";
@@ -84,16 +89,16 @@ export const genParams = (objectParams: any): string => {
  * - null/undefined: se omiten.
  */
 export const toFormData = (payload: Record<string, any>): FormData => {
-  const fd = new FormData()
+  const fd = new FormData();
   Object.entries(payload || {}).forEach(([key, value]) => {
-    if (value === null || value === undefined) return
+    if (value === null || value === undefined) return;
     if (Array.isArray(value)) {
       value.forEach((v) => {
-        if (v !== null && v !== undefined) fd.append(key, v as any)
-      })
+        if (v !== null && v !== undefined) fd.append(key, v as any);
+      });
     } else {
-      fd.append(key, value as any)
+      fd.append(key, value as any);
     }
-  })
-  return fd
-}
+  });
+  return fd;
+};

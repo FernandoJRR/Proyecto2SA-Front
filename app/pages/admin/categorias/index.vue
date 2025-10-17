@@ -198,9 +198,9 @@ async function runSearch() {
   try {
     // Si q es vacío/null, el backend devuelve todas
     rows.value = await searchCategoriesByName(q.value || "");
-  } catch (e) {
+  } catch (e: any) {
     rows.value = [];
-    toast.error("No se pudo cargar la lista");
+    toast.error(e?.message);
   } finally {
     loading.value = false;
   }
@@ -219,8 +219,8 @@ async function save() {
     }
     showDialog.value = false;
     await runSearch();
-  } catch (e) {
-    toast.error("No se pudo guardar la categoría");
+  } catch (e: any) {
+    toast.error(e?.message);
   } finally {
     saving.value = false;
   }
@@ -244,8 +244,8 @@ async function remove(id: string) {
     await deleteCategory(id);
     toast.success("Categoría eliminada");
     await runSearch();
-  } catch (e) {
-    toast.error("No se pudo eliminar la categoría");
+  } catch (e: any) {
+    toast.error(e?.message);
   } finally {
     deletingId.value = null;
   }
