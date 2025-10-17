@@ -66,6 +66,7 @@ export const useAuthStore = defineStore("auth", {
       tokenCookie.value = null;
 
       this.user = null;
+      this.rol = null;
       this.employee = null;
       this.authenticated = false;
 
