@@ -130,8 +130,6 @@ import { RouterLink } from 'vue-router';
 import { getAllEmployees, type Employee } from '~/lib/api/admin/employee';
 import InputText from 'primevue/inputtext'
 import Dropdown from 'primevue/dropdown'
-import { getAllHotels } from '~/lib/api/establishments/hotels';
-import { getAllRestaurants } from '~/lib/api/establishments/restaurants';
 
 const establishmentType = ref<'' | 'HOTEL' | 'RESTAURANT'>('')
 const establishmentId = ref<string>('') // seleccionado en dropdown
@@ -150,13 +148,14 @@ watch(establishmentType, async (t) => {
   if (!t) return
   establishmentsLoading.value = true
   try {
+    /** 
     if (t === 'HOTEL') {
       const hotels = await getAllHotels()
       establishmentOptions.value = (hotels ?? []).map((h: any) => ({ label: h.name ?? h.id, value: h.id }))
     } else if (t === 'RESTAURANT') {
       const restaurants = await getAllRestaurants()
       establishmentOptions.value = (restaurants ?? []).map((r: any) => ({ label: r.name ?? r.id, value: r.id }))
-    }
+    }*/
   } catch (e: any) {
     // opcional: mostrar toast si lo tienes disponible globalmente
     console.error('No se pudieron cargar los establecimientos', e?.message || e)

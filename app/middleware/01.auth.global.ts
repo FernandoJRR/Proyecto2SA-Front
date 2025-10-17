@@ -1,11 +1,14 @@
 import { storeToRefs } from "pinia";
 import { toast } from "vue-sonner";
+import App from "~/app.vue";
 import {
   canAccessAdmin,
   canAccessReservaciones,
   canAccessOrdenes,
   canAccessReportes,
   getRoleNameFromEmployee,
+  hasAnyRole,
+  AppRoles,
 } from "~/lib/auth/roles";
 
 export default defineNuxtRouteMiddleware((to, _from) => {
@@ -23,7 +26,10 @@ export default defineNuxtRouteMiddleware((to, _from) => {
     const role = rol.value ?? null;
 
     // Guard: only Admins can access routes under /admin
-    if (to.path.startsWith("/admin") && !canAccessAdmin(role)) {
+    if (
+      to.path.startsWith("/admin") &&
+      !hasAnyRole(role, [AppRoles.ADMIN, AppRoles.CINEMA_ADMIN])
+    ) {
       toast.error("No tienes permisos para acceder a Administración");
       return navigateTo("/");
     }

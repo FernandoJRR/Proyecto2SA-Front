@@ -286,31 +286,7 @@ const menuModel = [
         icon: "pi pi-chart-line",
         to: "/admin",
         accessRoles: [AppRoles.ADMIN, AppRoles.CINEMA_ADMIN],
-      },
-      {
-        label: "Empleados",
-        icon: "pi pi-id-card",
-        to: "/admin/personal",
-        accessRoles: [AppRoles.ADMIN, AppRoles.CINEMA_ADMIN],
-      },
-      {
-        label: "Clientes",
-        icon: "pi pi-users",
-        to: "/clientes",
-        accessRoles: [AppRoles.ADMIN],
-      },
-      {
-        label: "Promociones",
-        icon: "pi pi-percentage",
-        to: "/promociones",
-        accessRoles: [AppRoles.ADMIN, AppRoles.CINEMA_ADMIN],
-      },
-      {
-        label: "Reportes",
-        icon: "pi pi-chart-bar",
-        to: "/reportes",
-        accessRoles: [AppRoles.ADMIN],
-      },
+      }
     ],
   },
 ];
