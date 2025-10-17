@@ -139,6 +139,12 @@ const menus = reactive([
     route: "/admin/clasificaciones",
     permitedRoles: [AppRoles.ADMIN],
   },
+  {
+    title: "Anuncios",
+    description: "Gestión de administrador de Anuncios",
+    route: "/admin/anuncios",
+    permitedRoles: [AppRoles.ADMIN, AppRoles.CINEMA_ADMIN],
+  }
 ]);
 
 const filteredMenus = computed(() => {
