@@ -21,7 +21,7 @@ export const deleteById = async (id: UUID): Promise<void> => {
 }
 
 export const getAll = async (): Promise<DurationDays[]> => {
-  return await $api<DurationDays[]>(`${API_BASE}`, {
+  return await $api<DurationDays[]>(`${API_BASE}/all`, {
     method: "GET",
   });
 }
