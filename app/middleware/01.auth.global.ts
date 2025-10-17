@@ -9,8 +9,7 @@ export default defineNuxtRouteMiddleware((to, _from) => {
   //if(to.fullPath.includes('juegos')) return
 
   const token = useCookie(AUTH_COOKIE_NAME)
-
-
+  
   if (import.meta.client) {
     const auth = useAuthStore()
     const { employee } = storeToRefs(auth)

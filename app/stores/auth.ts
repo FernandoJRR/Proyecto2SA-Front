@@ -38,7 +38,8 @@ export const useAuthStore = defineStore("auth", {
 
         // Exito
         const tokenCookie = useCookie(AUTH_COOKIE_NAME);
-        tokenCookie.value = response?.token;
+        
+        tokenCookie.value = response?.jwt;
 
         this.user = {
           username: response?.userFullName ?? null,
