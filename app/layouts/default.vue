@@ -282,6 +282,12 @@ const menuModel = [
     icon: "pi pi-cog",
     items: [
       {
+        label: "Dashboard",
+        icon: "pi pi-chart-line",
+        to: "/admin",
+        accessRoles: [AppRoles.ADMIN, AppRoles.CINEMA_ADMIN],
+      },
+      {
         label: "Empleados",
         icon: "pi pi-id-card",
         to: "/admin/personal",
