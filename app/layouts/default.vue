@@ -6,7 +6,7 @@
     >
       <div class="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-8">
         <Menubar
-          :model="filterMenuModel(menuModel)"
+          :model="menuModelBound"
           class="border-0 bg-transparent"
         >
           <template #start>
@@ -37,7 +37,7 @@
                 >
               </RouterLink>
               <RouterLink to="/login" v-if="!authenticated">
-                <Button variant="text" @click="logout"
+                <Button variant="text"
                   ><i class="pi pi-sign-in" /> Iniciar Sesión</Button
                 >
               </RouterLink>
@@ -139,6 +139,21 @@ const { user, authenticated, rol: currentUserRole } = storeToRefs(authStore);
 
 const route = useRoute();
 const mobileOpen = ref(false);
+
+function bindCommands(items: any[]): any[] {
+  return (items || []).map((item) => {
+    const next: any = { ...item }
+    if (next.to) {
+      next.command = () => navigateTo(next.to)
+    }
+    if (Array.isArray(next.items) && next.items.length) {
+      next.items = bindCommands(next.items)
+    }
+    return next
+  })
+}
+
+const menuModelBound = computed(() => bindCommands(filterMenuModel(menuModel)))
 
 function filterMenuModel(menuModel: any) {
   let filteredMenu = [];
@@ -283,7 +298,7 @@ const menuModel = [
 ];
 
 // Breadcrumbs
-const homeCrumb = { icon: "pi pi-home", route: "/" };
+const homeCrumb = { icon: "pi pi-home", to: "/" };
 const breadcrumbs = computed(() => {
   const items: any[] = [];
   for (const rec of route.matched) {
@@ -293,7 +308,7 @@ const breadcrumbs = computed(() => {
       rec.name ||
       rec.path.split("/").filter(Boolean).slice(-1)[0];
     const to = rec.path.startsWith("/") ? rec.path : "/" + rec.path;
-    items.push({ label, route: to });
+    items.push({ label, to });
   }
   return items;
 });

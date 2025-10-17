@@ -20,6 +20,11 @@ export default defineNuxtRouteMiddleware((to, _from) => {
       toast.error('No tienes permisos para acceder a Administración')
       return navigateTo('/')
     }
+    // /peliculas/editar, /peliculas/crear admin check
+    if ((to.path.startsWith('/peliculas/editar') || to.path.startsWith('/peliculas/crear')) && !canAccessAdmin(role)) {
+      toast.error('No tienes permisos para acceder a Administración')
+      return navigateTo('/peliculas')
+    }
 
     // Guard: only Staff Hotel (or Admin) can access /reservaciones
     if (to.path.startsWith('/reservaciones') && !canAccessReservaciones(role)) {

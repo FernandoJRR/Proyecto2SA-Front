@@ -1,15 +1,28 @@
 <template>
   <div class="min-h-screen px-4 sm:px-6 lg:px-8 py-8">
     <!-- Header -->
-    <header class="max-w-7xl mx-auto mb-6">
-      <h1
-        class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900"
-      >
-        Películas disponibles
-      </h1>
-      <p class="text-slate-600">
-        Consulta la cartelera completa. 20 por página.
-      </p>
+    <header
+      class="max-w-7xl mx-auto mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between"
+    >
+      <div>
+        <h1
+          class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900"
+        >
+          Películas disponibles
+        </h1>
+        <p class="text-slate-600">
+          Consulta la cartelera completa. 20 por página.
+        </p>
+      </div>
+      <div v-if="isAdmin" class="mt-3 sm:mt-0">
+        <NuxtLink
+          to="/peliculas/crear"
+          class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md shadow-sm transition"
+        >
+          <i class="pi pi-plus mr-2"></i>
+          Crear película
+        </NuxtLink>
+      </div>
     </header>
 
     <!-- Filtros -->
@@ -110,18 +123,20 @@
               referrerpolicy="no-referrer"
             />
           </div>
-          <div class="p-3">
-            <h2 class="text-sm font-semibold text-slate-900 line-clamp-2">
-              {{ m.title }}
-            </h2>
-            <p class="text-xs text-slate-600 mt-1">{{ m.duration }} min</p>
-            <p class="text-xs text-slate-600 mt-1">
-              {{ m.classification?.name || "—" }} ·
-              {{ m.classification?.description || "—" }}
-            </p>
-            <p class="text-xs text-slate-600 mt-1">
-              {{ m.categories?.map((c) => c.name).join(", ") || "—" }}
-            </p>
+          <div class="p-3 flex flex-col justify-between h-full">
+            <div>
+              <h2 class="text-sm font-semibold text-slate-900 line-clamp-2">
+                {{ m.title }}
+              </h2>
+              <p class="text-xs text-slate-600 mt-1">{{ m.duration }} min</p>
+              <p class="text-xs text-slate-600 mt-1">
+                {{ m.classification?.name || "—" }} ·
+                {{ m.classification?.description || "—" }}
+              </p>
+              <p class="text-xs text-slate-600 mt-1">
+                {{ m.categories?.map((c) => c.name).join(", ") || "—" }}
+              </p>
+            </div>
           </div>
         </NuxtLink>
       </div>
@@ -193,7 +208,7 @@ const totalElements = ref(0);
 const placeholder =
   "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?q=80&w=800&auto=format&fit=crop"; // póster genérico
 
-const isAdmin = computed(() => isAdminRole(currentUserRole.value ?? ""));
+const isAdmin = computed(() => isAdminRole(currentUserRole.value));
 
 // ---- Filtros ----
 const filters = reactive<{

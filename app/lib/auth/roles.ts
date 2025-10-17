@@ -13,7 +13,8 @@ export function getRoleNameFromEmployee(
   return employee?.employeeType?.name;
 }
 
-export function isAdmin(role: RoleName): boolean {
+export function isAdmin(role: RoleName | null): boolean {
+  if (!role) return false;
   return role === AppRoles.ADMIN;
 }
 

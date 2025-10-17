@@ -93,10 +93,18 @@
           <!-- Actions -->
           <div class="flex flex-wrap items-center gap-3">
             <Button icon="pi pi-arrow-left" label="Volver a cartelera" outlined @click="goList" />
+            <Button v-if="isAdmin"
+              icon="pi pi-pencil"
+              label="Editar película"
+              @click="goEdit"
+            />
             <Button
-              icon="pi pi-ticket"
-              label="Ver cines con funciones"
-              @click="goCinemas"
+              v-if="isAdmin && movie"
+              :icon="movie.active ? 'pi pi-power-off' : 'pi pi-check-circle'"
+              :label="movie.active ? 'Desactivar' : 'Activar'"
+              :severity="movie.active ? 'danger' : 'success'"
+              :loading="toggling"
+              @click="toggleActive"
             />
           </div>
 
@@ -114,14 +122,21 @@
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import Divider from 'primevue/divider'
-import { getMovieById, type MovieResponseDTO } from '~/lib/api/movies/movie'
+import { getMovieById, tooggleMovieActive, type MovieResponseDTO } from '~/lib/api/movies/movie'
+import { isAdmin as isAdminRole } from "~/lib/auth/roles";
+import { toast } from 'vue-sonner'
+
 // Ajusta la ruta según tu estructura real
 
+const authStore = useAuthStore();
+const { rol: currentUserRole } = storeToRefs(authStore);
+const isAdmin = computed(() => isAdminRole(currentUserRole.value));
 
 const route = useRoute()
 const router = useRouter()
 
 const loading = ref(true)
+const toggling = ref(false)
 const movie = ref<MovieResponseDTO | null>(null)
 const castingList = computed(() => {
   const raw = movie.value?.casting || ''
@@ -153,9 +168,22 @@ function goList() {
   router.push('/peliculas')
 }
 
-function goCinemas() {
-  // puedes ajustar esta ruta cuando tengas página de funciones por cine
-  router.push('/#cines')
+function goEdit() {
+  if (!movie.value) return
+  router.push(`/peliculas/editar/${movie.value.id}`)
+}
+
+async function toggleActive() {
+  if (!movie.value || toggling.value) return
+  try {
+    toggling.value = true
+    await tooggleMovieActive(movie.value.id)
+    movie.value = { ...movie.value, active: !movie.value.active }
+  } catch (e) {
+    toast.error('No se pudo cambiar el estado de la película')
+  } finally {
+    toggling.value = false
+  }
 }
 
 function formatDate(iso: string | undefined) {
@@ -174,4 +202,4 @@ watch(() => route.params.id, () => loadMovie())
 
 <style scoped>
 /* No custom styles needed for now */
-</style>
+</style>x
