@@ -78,10 +78,13 @@ export const getById = async (id: UUID): Promise<AnuncioViewResponseDTO> => {
 export const getByCinemaId = async (
   cinemaId: UUID
 ): Promise<AnuncioViewResponseDTO[]> => {
-  return await $api<AnuncioViewResponseDTO[]>(`${API_BASE}/cinema/${cinemaId}`, {
-    method: "GET",
-  });
-}
+  return await $api<AnuncioViewResponseDTO[]>(
+    `${API_BASE}/cinema/${cinemaId}`,
+    {
+      method: "GET",
+    }
+  );
+};
 
 export const getByUserId = async (
   userId: UUID
@@ -89,19 +92,19 @@ export const getByUserId = async (
   return await $api<AnuncioViewResponseDTO[]>(`${API_BASE}/user/${userId}`, {
     method: "GET",
   });
-}
+};
 
 export const deleteAnuncioById = async (id: UUID): Promise<void> => {
   return await $api<void>(`${API_BASE}/${id}`, {
     method: "DELETE",
   });
-}
+};
 
 export const toggleAnuncioActive = async (id: UUID): Promise<void> => {
   return await $api<void>(`${API_BASE}/state/${id}`, {
     method: "PATCH",
   });
-}
+};
 
 export type CreateAnuncioMultipart = {
   content: string;
@@ -125,7 +128,7 @@ export const toAnuncioFormData = (a: CreateAnuncioMultipart): FormData => {
   fd.append("durationDaysId", a.durationDaysId);
   fd.append("file", a.file);
   return fd;
-}
+};
 
 export const createAnuncio = async (
   payload: CreateAnuncioMultipart
@@ -135,8 +138,7 @@ export const createAnuncio = async (
     method: "POST",
     body: formData,
   });
-}
-
+};
 
 export type UpdateAnuncioMultipart = {
   content: string;
@@ -145,14 +147,16 @@ export type UpdateAnuncioMultipart = {
   file: File;
 };
 
-export const toUpdateAnuncioFormData = (a: UpdateAnuncioMultipart): FormData => {
+export const toUpdateAnuncioFormData = (
+  a: UpdateAnuncioMultipart
+): FormData => {
   const fd = new FormData();
   fd.append("content", a.content);
   fd.append("description", a.description);
   fd.append("urlContent", a.urlContent);
   if (a.file) fd.append("file", a.file);
   return fd;
-}
+};
 
 export const updateAnuncio = async (
   id: UUID,
@@ -163,4 +167,4 @@ export const updateAnuncio = async (
     method: "PATCH",
     body: formData,
   });
-}
+};
