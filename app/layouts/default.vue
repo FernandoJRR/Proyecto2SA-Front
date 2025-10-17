@@ -227,6 +227,18 @@ const menuModel = [
           null,
         ],
       },
+      {
+        label: "Categorías",
+        icon: "pi pi-tags",
+        to: "/admin/categorias",
+        accessRoles: [AppRoles.ADMIN],
+      },
+      {
+        label: "Clasificaciones",
+        icon: "pi pi-shield",
+        to: "/admin/clasificaciones",
+        accessRoles: [AppRoles.ADMIN],
+      },
     ],
   },
   {

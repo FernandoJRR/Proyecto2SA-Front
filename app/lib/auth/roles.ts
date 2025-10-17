@@ -26,18 +26,18 @@ export function hasAnyRole(role: RoleName | null, allowed: any[]): boolean {
   return !!role && allowed.includes(role);
 }
 
-export function canAccessAdmin(role: RoleName): boolean {
+export function canAccessAdmin(role: RoleName | null): boolean {
   return isAdmin(role);
 }
 
-export function canAccessReservaciones(role: RoleName): boolean {
+export function canAccessReservaciones(role: RoleName | null): boolean {
   return isAdmin(role) || role === "Staff Hotel";
 }
 
-export function canAccessOrdenes(role: RoleName): boolean {
+export function canAccessOrdenes(role: RoleName | null): boolean {
   return isAdmin(role) || role === "Staff Restaurante";
 }
 
-export function canAccessReportes(role: RoleName): boolean {
+export function canAccessReportes(role: RoleName | null): boolean {
   return isAdmin(role) || role === "Contador";
 }
