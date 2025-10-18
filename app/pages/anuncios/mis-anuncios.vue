@@ -17,7 +17,7 @@
           </p>
         </div>
         <NuxtLink
-          to="/admin/anuncios/crear"
+          to="/anuncios/crear"
           class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md shadow-sm transition"
         >
           <i class="pi pi-plus mr-2"></i>
@@ -159,7 +159,7 @@
                   Ver
                 </NuxtLink>
                 <NuxtLink
-                  :to="`/admin/anuncios/editar/${data.id}`"
+                  :to="`/anuncios/editar/${data.id}`"
                   class="inline-flex items-center px-2 py-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 border border-indigo-600 rounded transition"
                 >
                   <i class="pi pi-pencil mr-1"></i>
@@ -172,6 +172,15 @@
                   size="small"
                   :loading="togglingId === data.id"
                   @click="() => toggleActive(data)"
+                />
+                <Button
+                  v-if="data.paymentState === PaymentState.FAILED"
+                  icon="pi pi-refresh"
+                  label="Reintentar pago"
+                  size="small"
+                  severity="warning"
+                  :loading="retryingId === data.id"
+                  @click="() => retryPayment(data)"
                 />
                 <Button
                   icon="pi pi-trash"
@@ -206,6 +215,7 @@ import {
   searchAnuncios,
   deleteAnuncioById,
   toggleAnuncioActive,
+  retryPaymentAnuncio,
   type AnuncioViewResponseDTO,
   type FilterAnuncios,
   AddType,
@@ -224,6 +234,7 @@ const page = ref(0)
 
 const deletingId = ref<string | null>(null)
 const togglingId = ref<string | null>(null)
+const retryingId = ref<string | null>(null)
 
 const auth = useAuthStore()
 const { user } = storeToRefs(auth)
@@ -328,6 +339,19 @@ async function toggleActive(row: AnuncioViewResponseDTO) {
     toast.error(e?.message)
   } finally {
     togglingId.value = null
+  }
+}
+
+async function retryPayment(row: AnuncioViewResponseDTO) {
+  try {
+    retryingId.value = row.id
+    await retryPaymentAnuncio(row.id)
+    toast.success('Intento de pago reenviado correctamente')
+    await runSearch(page.value)
+  } catch (e: any) {
+    toast.error(e?.message)
+  } finally {
+    retryingId.value = null
   }
 }
 

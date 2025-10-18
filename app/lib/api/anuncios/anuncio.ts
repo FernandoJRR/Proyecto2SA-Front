@@ -106,6 +106,12 @@ export const toggleAnuncioActive = async (id: UUID): Promise<void> => {
   });
 };
 
+export const retryPaymentAnuncio = async (id: UUID): Promise<void> => {
+  return await $api<void>(`${API_BASE}/retry-paid/${id}`, {
+    method: "POST",
+  });
+}
+
 export type CreateAnuncioMultipart = {
   content: string;
   type: AddType;
