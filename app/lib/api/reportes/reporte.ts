@@ -1,5 +1,3 @@
-import type { Payment } from "../payments/payments";
-
 const CURRENT_REPORTS_ESTABLISHMENTS_URI = "/v1/establishments/reports";
 const CURRENT_REPORTS_CLIENTS_URI = "/v1/clients/reports";
 const CURRENT_REPORTS_PAYMENTS_URI = "/v1/payments/reports";
