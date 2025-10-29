@@ -3,6 +3,8 @@ import {
   type AddType,
   type AnuncioViewResponseDTO,
 } from "../anuncios/anuncio";
+import { CURRENT_SALES_URI } from "../ventas/sales";
+import type { SnackView } from "../ventas/snacks";
 
 export interface AnunciosComradosQuery {
   from: string; // ISO date time string e.g. 2025-10-01T00:00:00
@@ -63,7 +65,7 @@ export const gananciasAnunciante = async (
     `${CURRENT_ANUNCIO_URI}/report/ganancias-anunciante`,
     {
       method: "POST",
-      params: query,
+      body: query,
     }
   );
   return response;
@@ -74,6 +76,60 @@ export const gananciasAnunciantePdf = async (
 ): Promise<Blob> => {
   const response = await postBlobToApi(
     `${CURRENT_ANUNCIO_URI}/report/ganancias-anunciante/pdf`,
+    undefined,
+    query
+  );
+  return response;
+};
+
+// -------------------------------------------------------------------
+// Snacks Sales by Cinema Report
+export interface CinemaView {
+  id: string;
+  name: string;
+}
+
+export interface SnackSalesByCinemaDTO {
+  cinemaId: string;
+  snackId: string;
+  totalQuantity: number;
+  totalAmount: number;
+  snack: SnackView;
+}
+
+export interface SnackReportByCinemaReportDTO {
+  snackSalesByCinemaDTOs: SnackSalesByCinemaDTO[];
+  totalAmount: number;
+  cinema: CinemaView;
+  from: string;
+  to: string;
+}
+
+export interface SnackSalesByCinemaQuery {
+  from: string; // ISO date time string e.g. 2025-10-01
+  to: string; // ISO date time string e.g. 2025-10-31
+}
+
+export const snackSalesByCinemaReport = async (
+  cinemaId: string,
+  query: SnackSalesByCinemaQuery
+): Promise<SnackReportByCinemaReportDTO> => {
+  const response = await $api<SnackReportByCinemaReportDTO>(
+    `${CURRENT_SALES_URI}/reports/sales/snacks/cinema/${cinemaId}`,
+    {
+      method: "POST",
+      params: query,
+    }
+  );
+  return response;
+};
+
+export const snackSalesByCinemaReportPdf = async (
+  cinemaId: string,
+  query: SnackSalesByCinemaQuery
+): Promise<Blob> => {
+  const response = await postBlobToApi(
+    `${CURRENT_SALES_URI}/reports/sales/snacks/cinema/${cinemaId}/pdf`,
     query
   );
   return response;

@@ -105,6 +105,12 @@ const reports = reactive([
     route: "/admin/reportes/ganancias-anunciantes",
     permitedRoles: [AppRoles.ADMIN],
   },
+  {
+    title: "Snacks Vendidos por Cine",
+    description: "Reporte de snacks vendidos en cada cine",
+    route: "/admin/reportes/snacks-vendidos-cine",
+    permitedRoles: [AppRoles.ADMIN, AppRoles.CINEMA_ADMIN],
+  }
 ]);
 
 const filteredReports = computed(() => {
