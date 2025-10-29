@@ -1,5 +1,3 @@
-import type { UUID } from "crypto";
-
 // Interfaces for User API requests and DTOs
 export interface CreateProfileDTO {
   firstName: string; //min 2, max 50
@@ -21,13 +19,13 @@ export interface CreateNoAdministrativeUserRequest extends CreateUserRequest {
 }
 
 export interface ProfileResponseDTO {
-  id: UUID;
+  id: string;
   firstName: string;
   lastName: string;
 }
 
 export interface UserResponseDTO {
-  id: UUID;
+  id: string;
   email: string;
   role: string;
   profile: ProfileResponseDTO;
@@ -57,3 +55,10 @@ export const createNoAdministrativeUser = async (
   });
   return response;
 };
+
+export const getSponsoredUsers = async (): Promise<UserResponseDTO[]> => {
+  const response = await $api<UserResponseDTO[]>(`${CURRENT_USER_URI}/sponsors`, {
+    method: "GET",
+  });
+  return response;
+}

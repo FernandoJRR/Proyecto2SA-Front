@@ -100,10 +100,10 @@ const reports = reactive([
     permitedRoles: [AppRoles.ADMIN],
   },
   {
-    title: "Otro Reporte",
-    description: "Llena con la información real más adelante.",
-    route: "/admin/reportes/otro",
-    permitedRoles: [AppRoles.ADMIN, AppRoles.CINEMA_ADMIN],
+    title: "Ganancias Anunciantes",
+    description: "Reporte de ganancias generadas por los anunciantes",
+    route: "/admin/reportes/ganancias-anunciantes",
+    permitedRoles: [AppRoles.ADMIN],
   },
 ]);
 
