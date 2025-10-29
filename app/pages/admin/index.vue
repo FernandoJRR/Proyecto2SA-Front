@@ -157,6 +157,12 @@ const menus = reactive([
     route: "/admin/anuncios",
     permitedRoles: [AppRoles.ADMIN, AppRoles.CINEMA_ADMIN],
   },
+  {
+    title: "Reportes",
+    description: "Visualización de Reportes del Sistema",
+    route: "/admin/reportes",
+    permitedRoles: [AppRoles.ADMIN, AppRoles.CINEMA_ADMIN],
+  },
 ]);
 
 const filteredMenus = computed(() => {
