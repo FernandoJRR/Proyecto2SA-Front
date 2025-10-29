@@ -116,7 +116,13 @@ const menus = reactive([
     permitedRoles: [AppRoles.ADMIN, AppRoles.CINEMA_ADMIN],
   },*/
   {
-    title: "Crear Usuario Admininistrador",
+    title: "Compañías",
+    description: "Gestión de Compañías Asociadas",
+    route: "/admin/companias",
+    permitedRoles: [AppRoles.ADMIN],
+  },
+  {
+    title: "Crear Usuario Administrador",
     description: "Crear nuevos usuarios con rol de administrador",
     route: "/admin/usuario/crear",
     permitedRoles: [AppRoles.ADMIN],
