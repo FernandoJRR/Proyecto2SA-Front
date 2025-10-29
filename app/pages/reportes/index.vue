@@ -106,12 +106,12 @@ import { toast } from 'vue-sonner';
 import { boolean } from 'zod';
 import InputText from 'primevue/inputtext'
 import Dropdown from 'primevue/dropdown'
-import { getIncomeReport } from '~/lib/api/reportes/reporte';
-import { getIncomeClientReport } from '~/lib/api/reportes/reporte';
-import { getIncomeOutcomeReport } from '~/lib/api/reportes/reporte';
-import { getMostPopularRoomReport } from '~/lib/api/reportes/reporte';
-import { getMostPopularRestaurantReport } from '~/lib/api/reportes/reporte';
-import { exportEstablishmentIncomePDF, exportClientActivityPDF, exportIncomeOutcomePDF, exportMostPopularRoomPDF, exportMostPopularRestaurantPDF } from '~/lib/api/reportes/reporte';
+import { getIncomeReport } from '~/lib/api/reportes/reporte.old';
+import { getIncomeClientReport } from '~/lib/api/reportes/reporte.old';
+import { getIncomeOutcomeReport } from '~/lib/api/reportes/reporte.old';
+import { getMostPopularRoomReport } from '~/lib/api/reportes/reporte.old';
+import { getMostPopularRestaurantReport } from '~/lib/api/reportes/reporte.old';
+import { exportEstablishmentIncomePDF, exportClientActivityPDF, exportIncomeOutcomePDF, exportMostPopularRoomPDF, exportMostPopularRestaurantPDF } from '~/lib/api/reportes/reporte.old';
 import { getAllHotels } from '~/lib/api/establishments/hotels'
 import { getAllRestaurants } from '~/lib/api/establishments/restaurants'
 

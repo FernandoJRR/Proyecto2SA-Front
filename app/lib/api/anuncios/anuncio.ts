@@ -44,13 +44,13 @@ export interface FilterAnuncios {
   userId?: UUID | null;
 }
 
-const API_BASE = "/v1/adds";
+export const CURRENT_ANUNCIO_URI = "/v1/adds";
 
 export const searchAnuncios = async (
   filter: FilterAnuncios,
   page: number = 0
 ): Promise<AnuncioPage> => {
-  return await $api<AnuncioPage>(`${API_BASE}/search`, {
+  return await $api<AnuncioPage>(`${CURRENT_ANUNCIO_URI}/search`, {
     method: "GET",
     params: { ...filter, page },
   });
@@ -61,7 +61,7 @@ export const getAnuncioAleatorioByCinemaAndType = async (
   type: AddType
 ): Promise<AnuncioViewResponseDTO | null> => {
   return await $api<AnuncioViewResponseDTO | null>(
-    `${API_BASE}/public/cinema/${cinemaId}/type/${type}/random`,
+    `${CURRENT_ANUNCIO_URI}/public/cinema/${cinemaId}/type/${type}/random`,
     {
       method: "GET",
       params: { cinemaId, type },
@@ -70,7 +70,7 @@ export const getAnuncioAleatorioByCinemaAndType = async (
 };
 
 export const getById = async (id: UUID): Promise<AnuncioViewResponseDTO> => {
-  return await $api<AnuncioViewResponseDTO>(`${API_BASE}/${id}`, {
+  return await $api<AnuncioViewResponseDTO>(`${CURRENT_ANUNCIO_URI}/${id}`, {
     method: "GET",
   });
 };
@@ -79,7 +79,7 @@ export const getByCinemaId = async (
   cinemaId: UUID
 ): Promise<AnuncioViewResponseDTO[]> => {
   return await $api<AnuncioViewResponseDTO[]>(
-    `${API_BASE}/cinema/${cinemaId}`,
+    `${CURRENT_ANUNCIO_URI}/cinema/${cinemaId}`,
     {
       method: "GET",
     }
@@ -89,25 +89,25 @@ export const getByCinemaId = async (
 export const getByUserId = async (
   userId: UUID
 ): Promise<AnuncioViewResponseDTO[]> => {
-  return await $api<AnuncioViewResponseDTO[]>(`${API_BASE}/user/${userId}`, {
+  return await $api<AnuncioViewResponseDTO[]>(`${CURRENT_ANUNCIO_URI}/user/${userId}`, {
     method: "GET",
   });
 };
 
 export const deleteAnuncioById = async (id: UUID): Promise<void> => {
-  return await $api<void>(`${API_BASE}/${id}`, {
+  return await $api<void>(`${CURRENT_ANUNCIO_URI}/${id}`, {
     method: "DELETE",
   });
 };
 
 export const toggleAnuncioActive = async (id: UUID): Promise<void> => {
-  return await $api<void>(`${API_BASE}/state/${id}`, {
+  return await $api<void>(`${CURRENT_ANUNCIO_URI}/state/${id}`, {
     method: "PATCH",
   });
 };
 
 export const retryPaymentAnuncio = async (id: UUID): Promise<void> => {
-  return await $api<void>(`${API_BASE}/retry-paid/${id}`, {
+  return await $api<void>(`${CURRENT_ANUNCIO_URI}/retry-paid/${id}`, {
     method: "POST",
   });
 }
@@ -140,7 +140,7 @@ export const createAnuncio = async (
   payload: CreateAnuncioMultipart
 ): Promise<AnuncioViewResponseDTO> => {
   const formData = toAnuncioFormData(payload);
-  return await $apiMultipart<AnuncioViewResponseDTO>(`${API_BASE}`, {
+  return await $apiMultipart<AnuncioViewResponseDTO>(`${CURRENT_ANUNCIO_URI}`, {
     method: "POST",
     body: formData,
   });
@@ -169,7 +169,7 @@ export const updateAnuncio = async (
   payload: UpdateAnuncioMultipart
 ): Promise<AnuncioViewResponseDTO> => {
   const formData = toUpdateAnuncioFormData(payload);
-  return await $apiMultipart<AnuncioViewResponseDTO>(`${API_BASE}/${id}`, {
+  return await $apiMultipart<AnuncioViewResponseDTO>(`${CURRENT_ANUNCIO_URI}/${id}`, {
     method: "PATCH",
     body: formData,
   });

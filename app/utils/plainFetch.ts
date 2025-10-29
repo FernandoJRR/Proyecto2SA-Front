@@ -102,3 +102,70 @@ export const toFormData = (payload: Record<string, any>): FormData => {
   });
   return fd;
 };
+
+/**
+ * Cliente para recibir archivos (Blob) desde la API (p.ej. PDF, imagen, video).
+ */
+type BlobMethod = "GET" | "POST";
+
+export const $apiBlob = $fetch.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL,
+  responseType: "blob",
+  onRequest({ options }) {
+    const userAuth = getCookie(AUTH_COOKIE_NAME);
+    options.headers.set("Authorization", userAuth ? `Bearer ${userAuth}` : "");
+    options.headers.set("Accept", "*/*");
+  },
+  async onResponseError({ response }) {
+    // Intenta leer el error del blob como texto/JSON
+    try {
+      const blob = response._data as Blob;
+      const text = await blob.text();
+      try {
+        const json = JSON.parse(text);
+        throw createError({
+          statusCode: response.status,
+          message: json?.messages?.join('\n') || json?.message || 'Error al obtener el recurso',
+        });
+      } catch {
+        throw createError({ statusCode: response.status, message: text || 'Error al obtener el recurso' });
+      }
+    } catch {
+      throw createError({ statusCode: response.status, message: 'Error al obtener el recurso' });
+    }
+  },
+});
+
+function buildCleanParams(params?: object | null) {
+  if (!params) return undefined;
+  const cleanEntries = Object.entries(params as Record<string, any>).filter(
+    ([, value]) => value !== null && value !== undefined && value !== ""
+  );
+  return cleanEntries.length
+    ? Object.fromEntries(
+        cleanEntries.map(([key, value]) => [key, String(value)])
+      )
+    : undefined;
+}
+
+export async function getBlobFromApi(
+  path: string,
+  params?: object | null
+): Promise<Blob> {
+  return await $apiBlob(path, {
+    method: "GET",
+    params: buildCleanParams(params),
+  });
+}
+
+export async function postBlobToApi(
+  path: string,
+  params?: object | null,
+  body?: any
+): Promise<Blob> {
+  return await $apiBlob(path, {
+    method: "POST",
+    params: buildCleanParams(params),
+    body,
+  });
+}
