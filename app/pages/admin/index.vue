@@ -103,7 +103,7 @@ const q = ref("");
 
 // Admin sections (feel free to add more later)
 const menus = reactive([
-  {
+  /*{
     title: "Personal",
     description: "Administración de Personal",
     route: "/admin/personal",
@@ -114,6 +114,12 @@ const menus = reactive([
     description: "Promociones y Descuentos del Sistema",
     route: "/admin/promociones",
     permitedRoles: [AppRoles.ADMIN, AppRoles.CINEMA_ADMIN],
+  },*/
+  {
+    title: "Crear Usuario Admininistrador",
+    description: "Crear nuevos usuarios con rol de administrador",
+    route: "/admin/usuario/crear",
+    permitedRoles: [AppRoles.ADMIN],
   },
   {
     title: "Precios Anuncios",
@@ -144,7 +150,7 @@ const menus = reactive([
     description: "Gestión de administrador de Anuncios",
     route: "/admin/anuncios",
     permitedRoles: [AppRoles.ADMIN, AppRoles.CINEMA_ADMIN],
-  }
+  },
 ]);
 
 const filteredMenus = computed(() => {
