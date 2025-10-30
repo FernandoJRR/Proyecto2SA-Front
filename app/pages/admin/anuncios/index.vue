@@ -46,11 +46,17 @@
             placeholder="Activo"
             class="w-full"
           />
-          <InputText
-            v-model.trim="filters.cinemaId"
-            placeholder="Cinema ID"
+          <Dropdown
+            v-model="filters.cinemaId"
+            :options="cinemaFilterOptions"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Cinema"
             class="w-full"
-            @keydown.enter="() => runSearch(0)"
+            :showClear="!companyId"
+            filter
+            :loading="cinemasLoading"
+            @change="() => runSearch(0)"
           />
           <InputText
             v-model.trim="filters.userId"
@@ -203,6 +209,8 @@
 </template>
 
 <script lang="ts" setup>
+import { computed, onMounted, reactive, ref, watch } from "vue";
+import { storeToRefs } from "pinia";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import InputText from "primevue/inputtext";
@@ -222,9 +230,11 @@ import {
   PaymentState,
 } from "~/lib/api/anuncios/anuncio";
 import { isAdmin } from "~/lib/auth/roles";
+import { getAllCinemas, getCinemasByCompanyId, type CinemaResponseDTO } from "~/lib/api/cinema/cinema";
+import { useAuthStore } from "~/stores/auth";
 
 const authStore = useAuthStore();
-const { rol } = storeToRefs(authStore);
+const { rol, companyId } = storeToRefs(authStore);
 const role = rol.value ?? null;
 
 const confirm = useConfirm();
@@ -262,14 +272,69 @@ const activeOptions = [
   { label: "Inactivos", value: false },
 ];
 
+const {
+  state: cinemaState,
+  asyncStatus: cinemaStatus,
+  refetch: refetchCinemas,
+} = useCustomQuery({
+  key: ["anuncios-cinemas", companyId],
+  query: () => {
+    const id = companyId.value?.trim();
+    return id ? getCinemasByCompanyId(id) : getAllCinemas();
+  },
+});
+
+const cinemaOptions = computed<Array<{ label: string; value: string }>>(() =>
+  (cinemaState.value.data ?? []).map((cinema: CinemaResponseDTO) => ({
+    label: cinema.name,
+    value: cinema.id,
+  }))
+);
+
+const cinemaFilterOptions = computed(() => {
+  if (companyId.value) {
+    return cinemaOptions.value;
+  }
+  return [{ label: "— Todos los cines —", value: null }, ...cinemaOptions.value];
+});
+
+const cinemasLoading = computed(() => cinemaStatus.value === "loading");
+
 async function runSearch(p = 0) {
   loading.value = true;
   try {
+    if (companyId.value && cinemaStatus.value === "loading") {
+      await refetchCinemas();
+    }
+
+    if (companyId.value && cinemaStatus.value === "error") {
+      rows.value = [];
+      totalElements.value = 0;
+      toast.error("No se pudieron cargar los cines asociados a tu compañía.");
+      return;
+    }
+
+    if (companyId.value) {
+      const allowedIds = cinemaOptions.value.map((option) => option.value);
+      if (filters.cinemaId && !allowedIds.includes(filters.cinemaId)) {
+        filters.cinemaId = null;
+      }
+      if (!allowedIds.length) {
+        rows.value = [];
+        totalElements.value = 0;
+        page.value = 0;
+        return;
+      }
+      if (!filters.cinemaId) {
+        filters.cinemaId = allowedIds[0];
+      }
+    }
+
     const clean: FilterAnuncios = {
       type: filters.type ?? null,
       paymentState: filters.paymentState ?? null,
       active: typeof filters.active === "boolean" ? filters.active : null,
-      cinemaId: filters.cinemaId?.trim() || null,
+      cinemaId: filters.cinemaId ?? null,
       userId: filters.userId?.trim() || null,
     };
     const resp = await searchAnuncios(clean, p);
@@ -372,6 +437,11 @@ function formatDate(iso?: string) {
 }
 
 onMounted(() => {
+  runSearch(0);
+});
+
+watch(companyId, () => {
+  filters.cinemaId = null;
   runSearch(0);
 });
 </script>

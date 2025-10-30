@@ -16,16 +16,22 @@
           </p>
         </div>
         <div class="flex items-center gap-2">
-          <InputText
-            v-model.trim="q"
-            placeholder="Buscar por Cinema ID (vacío = todos)…"
+          <Dropdown
+            v-model="selectedCinemaId"
+            :options="cinemaOptions"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Selecciona un cine (vacío = todos)"
             class="w-80"
-            @keydown.enter="() => runSearch()"
+            showClear
+            filter
+            :loading="cinemasLoading"
+            @change="() => runSearch(0)"
           />
           <Button
             icon="pi pi-search"
             label="Buscar"
-            @click="() => runSearch()"
+            @click="() => runSearch(0)"
             :loading="loading"
           />
           <Button
@@ -124,16 +130,29 @@
         <div class="space-y-4">
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1"
-              >Cinema ID *</label
+              >Cine *</label
             >
-            <InputText
-              v-model.trim="createCinemaId"
+            <Dropdown
+              v-model="createCinemaId"
+              :options="cinemaOptions"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Selecciona un cine"
               class="w-full"
-              placeholder="UUID del cine"
+              filter
+              :loading="cinemasLoading"
+              :disabled="cinemasLoading || !cinemaOptions.length"
             />
             <small v-if="createErrors.cinemaId" class="text-red-600">{{
               createErrors.cinemaId
             }}</small>
+            <p
+              v-if="!cinemaOptions.length && !cinemasLoading"
+              class="mt-1 text-xs text-amber-600"
+            >
+              No hay cines disponibles para crear precios. Verifica tus permisos
+              o registra un cine primero.
+            </p>
           </div>
           <p class="text-xs text-slate-500">
             Se creará el registro de precios para este cine con los valores
@@ -148,7 +167,12 @@
               outlined
               @click="showCreate = false"
             />
-            <Button label="Crear" :loading="savingCreate" @click="saveCreate" />
+            <Button
+              label="Crear"
+              :loading="savingCreate"
+              :disabled="cinemasLoading || !cinemaOptions.length"
+              @click="saveCreate"
+            />
           </div>
         </template>
       </Dialog>
@@ -238,6 +262,8 @@
 </template>
 
 <script lang="ts" setup>
+import { computed, onMounted, reactive, ref, watch } from "vue";
+import { storeToRefs } from "pinia";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import InputText from "primevue/inputtext";
@@ -245,6 +271,7 @@ import InputNumber from "primevue/inputnumber";
 import Button from "primevue/button";
 import Dialog from "primevue/dialog";
 import ConfirmDialog from "primevue/confirmdialog";
+import Dropdown from "primevue/dropdown";
 import { useConfirm } from "primevue/useconfirm";
 import { toast } from "vue-sonner";
 
@@ -259,10 +286,39 @@ import {
   type UpdatePrices,
   type PricesPage,
 } from "~/lib/api/anuncios/prices";
+import { getAllCinemas, getCinemasByCompanyId, type CinemaResponseDTO } from "~/lib/api/cinema/cinema";
+import { useAuthStore } from "~/stores/auth";
 
 const confirm = useConfirm();
 
-const q = ref("");
+const { companyId } = storeToRefs(useAuthStore());
+
+const {
+  state: cinemaState,
+  asyncStatus: cinemaStatus,
+  refetch: refetchCinemas,
+} = useCustomQuery({
+  key: ["ad-prices-cinemas", companyId],
+  query: () => {
+    const id = companyId.value?.trim();
+    return id ? getCinemasByCompanyId(id) : getAllCinemas();
+  },
+});
+
+const cinemaOptions = computed<Array<{ label: string; value: string }>>(() =>
+  (cinemaState.value.data ?? []).map((cinema: CinemaResponseDTO) => ({
+    label: cinema.name,
+    value: cinema.id,
+  }))
+);
+
+const allowedCinemaIds = computed(() =>
+  cinemaOptions.value.map((option) => option.value)
+);
+
+const cinemasLoading = computed(() => cinemaStatus.value === "loading");
+
+const selectedCinemaId = ref<string | null>(null);
 const loading = ref(false);
 const rows = ref<Prices[]>([]);
 const deletingId = ref<string | null>(null);
@@ -303,7 +359,7 @@ const editErrors = reactive<{
 });
 
 function validateCreate() {
-  createErrors.cinemaId = createCinemaId.value.trim() ? null : "Requerido";
+  createErrors.cinemaId = createCinemaId.value ? null : "Selecciona un cine.";
   return !createErrors.cinemaId;
 }
 
@@ -331,8 +387,11 @@ function validateEdit() {
 
 function openCreate() {
   showCreate.value = true;
-  createCinemaId.value = "";
   createErrors.cinemaId = null;
+  createCinemaId.value = "";
+  if (!createCinemaId.value && allowedCinemaIds.value.length === 1) {
+    createCinemaId.value = allowedCinemaIds.value[0];
+  }
 }
 
 function openEdit(row: Prices) {
@@ -350,16 +409,72 @@ function openEdit(row: Prices) {
 async function runSearch(p: number = 0): Promise<void> {
   loading.value = true;
   try {
-    const term = q.value.trim();
-    if (!term) {
-      const res: PricesPage = await getAll();
-      rows.value = res.content;
-      totalRecords.value = res.totalElements;
+    const term =
+      typeof selectedCinemaId.value === "string"
+        ? selectedCinemaId.value.trim()
+        : "";
+    const companyScoped = !!companyId.value;
+
+    if (companyScoped) {
+      if (cinemaStatus.value === "loading") {
+        await refetchCinemas();
+      }
+      if (cinemaStatus.value === "error") {
+        rows.value = [];
+        totalRecords.value = 0;
+        toast.error(
+          "No se pudieron cargar los cines asociados a tu compañía."
+        );
+        return;
+      }
+      const allowedIds = allowedCinemaIds.value;
+
+      if (!allowedIds.length) {
+        rows.value = [];
+        totalRecords.value = 0;
+        page.value = 0;
+        return;
+      }
+
+      if (term) {
+        if (!allowedIds.includes(term)) {
+          rows.value = [];
+          totalRecords.value = 0;
+          toast.info(
+            "No se encontraron precios para ese cine dentro de tu compañía."
+          );
+        } else {
+          const one = await getByCinemaId(term).catch(() => null);
+          rows.value = one ? [one] : [];
+          totalRecords.value = one ? 1 : 0;
+        }
+      } else {
+        const responses = await Promise.allSettled(
+          allowedIds.map((id) => getByCinemaId(id))
+        );
+        const data = responses
+          .filter(
+            (
+              result
+            ): result is PromiseFulfilledResult<Prices> =>
+              result.status === "fulfilled"
+          )
+          .map((result) => result.value);
+        rows.value = data;
+        totalRecords.value = data.length;
+      }
     } else {
-      const one = await getByCinemaId(term);
-      rows.value = one ? [one] : [];
-      totalRecords.value = one ? 1 : 0;
+      if (!term) {
+        const res: PricesPage = await getAll();
+        rows.value = res.content;
+        totalRecords.value = res.totalElements;
+      } else {
+        const one = await getByCinemaId(term).catch(() => null);
+        rows.value = one ? [one] : [];
+        totalRecords.value = one ? 1 : 0;
+      }
     }
+
     page.value = p;
   } catch (e: any) {
     rows.value = [];
@@ -374,7 +489,7 @@ function onPageChange(event: any) {
 }
 
 function resetFilters() {
-  q.value = "";
+  selectedCinemaId.value = null;
   page.value = 0;
   runSearch(0);
 }
@@ -391,6 +506,7 @@ async function saveCreate() {
     toast.error(e?.message);
   } finally {
     savingCreate.value = false;
+    createCinemaId.value = "";
   }
 }
 
@@ -498,6 +614,12 @@ function formatDate(iso?: string) {
 
 onMounted(() => {
   runSearch();
+});
+
+watch(companyId, () => {
+  selectedCinemaId.value = null;
+  page.value = 0;
+  runSearch(0);
 });
 </script>
 
