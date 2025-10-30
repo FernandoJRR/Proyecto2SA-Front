@@ -21,6 +21,7 @@ export const useAuthStore = defineStore("auth", {
     loading: false,
     user: null as User | null,
     rol: null as string | null,
+    companyId: null as string | null,
     employee: null as Employee | null,
     staffRoles: [] as any[],
   }),
@@ -47,6 +48,7 @@ export const useAuthStore = defineStore("auth", {
         };
         this.rol = response?.role ?? null;
         this.employee = response?.employee ?? null;
+        this.companyId = response?.companyId ?? null;
         this.authenticated = true;
 
         toast.success("Bienvenido!");
@@ -68,6 +70,7 @@ export const useAuthStore = defineStore("auth", {
       this.user = null;
       this.rol = null;
       this.employee = null;
+      this.companyId = null;
       this.authenticated = false;
 
       this.loading = false;
