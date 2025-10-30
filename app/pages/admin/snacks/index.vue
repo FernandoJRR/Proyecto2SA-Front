@@ -125,6 +125,22 @@
                 <RouterLink :to="`/admin/snacks/editar-${data.id}`">
                   <Button icon="pi pi-pencil" label="Editar" size="small" text severity="warning" />
                 </RouterLink>
+                <Button
+                  icon="pi pi-refresh"
+                  label="Cambiar estado"
+                  size="small"
+                  text
+                  severity="danger"
+                  @click="async () => {
+                    try {
+                      await updateSnackState(data.id);
+                      toast.success('Estado del snack actualizado');
+                      runSearch(page);
+                    } catch (error: any) {
+                      toast.error(error?.message ?? 'No fue posible actualizar el estado del snack');
+                    }
+                  }"
+                />
               </div>
             </template>
           </Column>
@@ -145,12 +161,12 @@ import InputText from 'primevue/inputtext'
 import Dropdown from 'primevue/dropdown'
 import Tag from 'primevue/tag'
 import { toast } from 'vue-sonner'
-import { searchSnacks, searchSnacksByCinema, type SnackView } from '~/lib/api/ventas/snacks'
+import { searchSnacks, searchSnacksByCinema, updateSnackState, type SnackView } from '~/lib/api/ventas/snacks'
 import { getAllCinemas, getCinemasByCompanyId, type CinemaResponseDTO } from '~/lib/api/cinema/cinema'
 import { useAuthStore } from '~/stores/auth'
 import { useCustomQuery } from '~/composables/useCustomQuery'
 
-const PAGE_SIZE = 10
+const PAGE_SIZE = 20
 
 const authStore = useAuthStore()
 const { companyId } = storeToRefs(authStore)

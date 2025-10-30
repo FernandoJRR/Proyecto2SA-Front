@@ -76,14 +76,19 @@
               <label class="block text-sm font-medium text-slate-700 mb-1" for="urlImage">
                 Imagen (URL)
               </label>
-              <InputText
-                id="urlImage"
-                v-model.trim="form.urlImage"
-                placeholder="https://..."
-                class="w-full"
-                @input="onUrlChange"
-              />
-              <small v-if="errors.urlImage" class="text-red-600">{{ errors.urlImage }}</small>
+              <div v-if="!hasFile">
+                <InputText
+                  id="urlImage"
+                  v-model.trim="form.urlImage"
+                  placeholder="https://..."
+                  class="w-full"
+                  @input="onUrlChange"
+                />
+                <small v-if="errors.urlImage" class="text-red-600">{{ errors.urlImage }}</small>
+              </div>
+              <p v-else class="text-xs text-slate-500">
+                Para usar una URL elimina el archivo seleccionado.
+              </p>
             </div>
           </div>
 
@@ -91,11 +96,17 @@
             <label class="block text-sm font-medium text-slate-700 mb-1">
               Imagen (archivo)
             </label>
-            <input ref="fileInput" type="file" accept="image/*" @change="onFileChange" />
-            <small v-if="errors.imageFile" class="block text-red-600 mt-1">{{ errors.imageFile }}</small>
-            <div v-if="previewSrc" class="mt-3 w-40 rounded-lg overflow-hidden border border-slate-200">
-              <img :src="previewSrc" alt="Previsualización" class="w-full h-auto object-cover" />
+            <div v-if="!hasUrl">
+              <input ref="fileInput" type="file" accept="image/*" @change="onFileChange" />
+              <small v-if="errors.imageFile" class="block text-red-600 mt-1">{{ errors.imageFile }}</small>
             </div>
+            <p v-else class="text-xs text-slate-500">
+              Para subir un archivo elimina la URL establecida.
+            </p>
+          </div>
+
+          <div v-if="previewSrc" class="w-40 rounded-lg overflow-hidden border border-slate-200">
+            <img :src="previewSrc" alt="Previsualización" class="w-full h-auto object-cover" />
           </div>
 
           <div class="flex items-center justify-end gap-3">
@@ -191,6 +202,9 @@ const submitting = ref(false)
 const previewSrc = ref<string | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
 
+const hasUrl = computed(() => form.urlImage.trim().length > 0)
+const hasFile = computed(() => !!form.imageFile)
+
 watch(
   snack,
   (value) => {
@@ -245,9 +259,7 @@ function validate(): boolean {
   const priceNumber = typeof form.price === 'number' ? form.price : null
   errors.price = priceNumber != null && priceNumber > 0 ? null : 'Ingresa un precio válido.'
 
-  const hasUrl = !!form.urlImage.trim()
-  const hasFile = !!form.imageFile
-  if (!hasUrl && !hasFile && !snack.value?.imageUrl) {
+  if (!hasUrl.value && !hasFile.value && !snack.value?.imageUrl) {
     errors.urlImage = 'Proporciona una URL o sube una imagen.'
     errors.imageFile = 'Proporciona una URL o sube una imagen.'
   } else {
@@ -272,7 +284,7 @@ async function onSubmit() {
       name: form.name.trim(),
       price: Number(form.price),
       urlImage: form.urlImage.trim() || undefined,
-      imageFile: form.imageFile,
+      file: form.imageFile,
     }
 
     await updateSnack(snack.value.id, payload)

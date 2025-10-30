@@ -1,3 +1,4 @@
+import type { V } from "vitest/dist/chunks/environment.d.C8UItCbf.js";
 import type { Page } from "../utils/paginated";
 
 export const CURRENT_SNACKS_URI = "/v1/snacks";
@@ -37,7 +38,7 @@ export interface CreateSnackMultipart {
   price: number;
   cinemaId: string;
   urlImage?: string;
-  imageFile?: File | null;
+  file?: File | null;
 }
 
 export const toSnackFormData = (snack: CreateSnackMultipart): FormData => {
@@ -48,8 +49,8 @@ export const toSnackFormData = (snack: CreateSnackMultipart): FormData => {
   if (snack.urlImage) {
     formData.append("urlImage", snack.urlImage);
   }
-  if (snack.imageFile) {
-    formData.append("imageFile", snack.imageFile);
+  if (snack.file) {
+    formData.append("file", snack.file);
   }
   return formData;
 };
@@ -72,7 +73,7 @@ export interface UpdateSnackMultipart {
   name: string;
   price: number;
   urlImage?: string;
-  imageFile?: File | null;
+  file?: File | null;
 }
 
 export const toUpdateSnackFormData = (
@@ -84,8 +85,8 @@ export const toUpdateSnackFormData = (
   if (snack.urlImage) {
     formData.append("urlImage", snack.urlImage);
   }
-  if (snack.imageFile) {
-    formData.append("imageFile", snack.imageFile);
+  if (snack.file) {
+    formData.append("file", snack.file);
   }
   return formData;
 };
@@ -144,5 +145,12 @@ export const searchSnacksByCinema = async (
       params: { page, ...params },
     }
   );
+  return response;
+};
+
+export const updateSnackState = async (id: string): Promise<void> => {
+  const response = await $api<void>(`${CURRENT_SNACKS_URI}/state/${id}`, {
+    method: "PATCH",
+  });
   return response;
 };
