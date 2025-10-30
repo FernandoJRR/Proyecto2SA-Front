@@ -54,6 +54,18 @@ export const getAllCinemaHalls = async (): Promise<CinemaHallResponseDTO[]> => {
   return response;
 };
 
+export const getCinemaHallsByCinemaId = async (
+  cinemaId: string
+): Promise<CinemaHallResponseDTO[]> => {
+  const response = await $api<CinemaHallResponseDTO[]>(
+    `${CURRENT_CINEMA_HALL_URI}/public/by-cinema/${cinemaId}`,
+    {
+      method: "GET",
+    }
+  );
+  return response;
+}
+
 export interface UpdateCinemaHallRequest {
   name: string; // min 2, max 255
   columns: number; // min 1

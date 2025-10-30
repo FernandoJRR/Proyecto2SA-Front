@@ -74,6 +74,9 @@
                 <RouterLink :to="`/admin/cines/editar-${data.id}`">
                   <Button label="Editar" severity="warn" variant="text" rounded aria-label="Editar cine" />
                 </RouterLink>
+                <RouterLink :to="`/admin/cines/sala/cine/${data.id}`">
+                  <Button label="Salas" severity="primary" variant="text" rounded aria-label="Administrar salas" />
+                </RouterLink>
               </div>
             </template>
           </Column>
