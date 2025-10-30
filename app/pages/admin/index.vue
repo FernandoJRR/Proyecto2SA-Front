@@ -122,6 +122,12 @@ const menus = reactive([
     permitedRoles: [AppRoles.CINEMA_ADMIN],
   },
   {
+    title: "Snacks",
+    description: "Gestión de Snacks y Bebidas",
+    route: "/admin/snacks",
+    permitedRoles: [AppRoles.CINEMA_ADMIN, AppRoles.ADMIN],
+  },
+  {
     title: "Compañías",
     description: "Gestión de Compañías Asociadas",
     route: "/admin/companias",

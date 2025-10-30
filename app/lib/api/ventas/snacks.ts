@@ -138,7 +138,7 @@ export const searchSnacksByCinema = async (
   params?: SearchSnacksByCinemaParams
 ): Promise<SnackPage> => {
   const response = await $api<SnackPage>(
-    `${CURRENT_SNACKS_URI}/public/search/by-cinema/${cinemaId}`,
+    `${CURRENT_SNACKS_URI}/public/cinema/${cinemaId}`,
     {
       method: "GET",
       params: { page, ...params },
