@@ -61,7 +61,7 @@
           </div>
           <div class="p-5 border-t border-slate-100 bg-slate-50/50">
             <NuxtLink
-              :to="`/cine/${cinema.id}`"
+              :to="`/cines/${cinema.id}`"
               class="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
               :aria-label="`Ver cine ${cinema.name}`"
             >

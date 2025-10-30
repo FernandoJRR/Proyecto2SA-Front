@@ -51,29 +51,52 @@
                 optionValue="value"
                 placeholder="Selecciona tipo"
                 class="w-full"
+                :disabled="fetchingCinemaPrice || !cinemaPrices"
               />
               <small v-if="errors.type" class="text-red-600">{{
                 errors.type
               }}</small>
               <p v-if="form.type" class="mt-1 text-sm text-slate-600">
-                Valor por día (según cine seleccionado):
-                <span class="font-semibold text-slate-800">{{ selectedPrice }}</span>
+                <template v-if="fetchingCinemaPrice">
+                  Calculando tarifas…
+                </template>
+                <template v-else-if="hasPriceForSelection">
+                  Valor por día:
+                  <span class="font-semibold text-slate-800">
+                    {{ selectedPricePerDayFormatted }}
+                  </span>
+                </template>
+                <template v-else>
+                  No hay una tarifa configurada para este tipo en el cine seleccionado.
+                </template>
               </p>
             </div>
 
             <!-- Cinema -->
             <div>
               <label class="block text-sm font-medium text-slate-700 mb-1"
-                >Cinema ID *</label
+                >Cine *</label
               >
-              <InputText
-                v-model.trim="form.cinemaId"
-                placeholder="UUID del cine"
+              <Dropdown
+                v-model="form.cinemaId"
+                :options="cinemaOptions"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Selecciona un cine"
                 class="w-full"
+                :loading="cinemasLoading"
+                :disabled="cinemasLoading || !cinemaOptions.length"
+                filter
               />
               <small v-if="errors.cinemaId" class="text-red-600">{{
                 errors.cinemaId
               }}</small>
+              <p
+                v-if="!cinemaOptions.length && !cinemasLoading"
+                class="mt-1 text-xs text-amber-600"
+              >
+                No hay cines disponibles. Registra un cine antes de crear el anuncio.
+              </p>
             </div>
 
             <!-- URL de contenido (solo media; alterna con archivo) -->
@@ -116,9 +139,9 @@
             <div class="sm:col-span-2">
               <p class="text-slate-700 font-medium">
                 Precio total estimado:
-                <span class="font-semibold text-emerald-700">{{
-                  totalPriceFormatted
-                }}</span>
+                <span class="font-semibold text-emerald-700">
+                  {{ totalPriceFormatted }}
+                </span>
               </p>
             </div>
           </div>
@@ -139,6 +162,8 @@
 </template>
 
 <script lang="ts" setup>
+import { computed, onMounted, reactive, ref, watch } from "vue";
+import { storeToRefs } from "pinia";
 import Button from "primevue/button";
 import InputText from "primevue/inputtext";
 import Textarea from "primevue/textarea";
@@ -151,6 +176,7 @@ import {
 } from "~/lib/api/anuncios/anuncio";
 import { getAll as getDurations } from "~/lib/api/anuncios/duration";
 import { getByCinemaId as getPricesByCinemaId, type Prices } from "~/lib/api/anuncios/prices";
+import { getAllCinemas, type CinemaResponseDTO } from "~/lib/api/cinema/cinema";
 
 const authStore = useAuthStore();
 const { user, rol: currentUserRole } = storeToRefs(authStore);
@@ -164,7 +190,7 @@ const form = reactive({
   description: "",
   content: "",
   type: null as AddType | null,
-  cinemaId: "",
+  cinemaId: "" as string | null,
   userId: user.value?.userId,
   urlContent: "",
   durationDaysId: "",
@@ -189,6 +215,21 @@ const typeOptions = [
 
 const durations = ref<{ id: string; days: number }[]>([]);
 const cinemaPrices = ref<Prices | null>(null);
+const fetchingCinemaPrice = ref(false);
+const {
+  state: cinemasState,
+  asyncStatus: cinemasStatus,
+} = useCustomQuery({
+  key: ["anuncios-create-cinemas"],
+  query: () => getAllCinemas(),
+});
+const cinemaOptions = computed<Array<{ label: string; value: string }>>(() =>
+  ((cinemasState.value.data ?? []) as CinemaResponseDTO[]).map((cinema) => ({
+    label: cinema.name,
+    value: cinema.id,
+  }))
+);
+const cinemasLoading = computed(() => cinemasStatus.value === "loading");
 
 onMounted(async () => {
   try {
@@ -199,20 +240,56 @@ onMounted(async () => {
   }
 });
 
-// Cargar precios por cine cuando se seleccione cinemaId
-watch(() => form.cinemaId, async (val) => {
-  const id = (val ?? '').trim()
-  if (!id) {
-    cinemaPrices.value = null
-    return
+watch(
+  cinemaOptions,
+  (options) => {
+    if (!options.length) {
+      form.cinemaId = null;
+      return;
+    }
+    const current = (form.cinemaId ?? "").trim();
+    const stillValid = current && options.some((option) => option.value === current);
+    if (!stillValid) {
+      form.cinemaId = options[0].value;
+    }
+  },
+  { immediate: true }
+);
+
+async function loadCinemaPrices(cinemaId: string) {
+  if (!cinemaId) {
+    cinemaPrices.value = null;
+    return;
   }
+  fetchingCinemaPrice.value = true;
+  cinemaPrices.value = null;
   try {
-    cinemaPrices.value = await getPricesByCinemaId(id)
+    const prices = await getPricesByCinemaId(cinemaId);
+    cinemaPrices.value = prices ?? null;
   } catch (e: any) {
-    cinemaPrices.value = null
-    toast.error(e?.message)
+    cinemaPrices.value = null;
+    toast.error("No se pudieron obtener las tarifas del cine", {
+      description: e?.message,
+    });
+  } finally {
+    fetchingCinemaPrice.value = false;
   }
-})
+}
+
+// Cargar precios por cine cuando se seleccione cinemaId
+watch(
+  () => form.cinemaId,
+  (val) => {
+    const id = typeof val === "string" ? val.trim() : "";
+    if (!id) {
+      cinemaPrices.value = null;
+      return;
+    }
+    form.type = null;
+    loadCinemaPrices(id);
+  },
+  { immediate: true }
+);
 
 const isText = computed(() => form.type === AddType.TEXT_BANNER)
 const isMedia = computed(() => form.type === AddType.MEDIA_VERTICAL || form.type === AddType.MEDIA_HORIZONTAL)
@@ -246,29 +323,63 @@ watch(() => form.urlContent, (val) => {
 const selectedDuration = computed(() =>
   durations.value.find((d) => d.id === form.durationDaysId)
 );
-const selectedPrice = computed(() => {
-  if (!form.type || !cinemaPrices.value) return 0
-  const p = cinemaPrices.value
-  switch (form.type) {
-    case AddType.TEXT_BANNER: return p.amountTextBanner
-    case AddType.MEDIA_VERTICAL: return p.amountMediaVertical
-    case AddType.MEDIA_HORIZONTAL: return p.amountMediaHorizontal
-    default: return 0
-  }
-})
-const totalPrice = computed(() =>
-  selectedDuration.value ? selectedDuration.value.days * selectedPrice.value : 0
+
+const priceByTypeMap: Record<AddType, keyof Prices> = {
+  [AddType.TEXT_BANNER]: "amountTextBanner",
+  [AddType.MEDIA_VERTICAL]: "amountMediaVertical",
+  [AddType.MEDIA_HORIZONTAL]: "amountMediaHorizontal",
+};
+
+const selectedPricePerDay = computed<number | null>(() => {
+  if (!cinemaPrices.value || !form.type) return null;
+  const key = priceByTypeMap[form.type];
+  const raw = cinemaPrices.value[key];
+  const numeric = Number(raw);
+  return Number.isFinite(numeric) ? numeric : null;
+});
+
+const hasPriceForSelection = computed(
+  () => selectedPricePerDay.value != null
 );
-const totalPriceFormatted = computed(() =>
-  new Intl.NumberFormat("es-GT", { style: "currency", currency: "GTQ" }).format(
-    totalPrice.value
-  )
-);
+
+const currencyFormatter = new Intl.NumberFormat("es-GT", {
+  style: "currency",
+  currency: "GTQ",
+  minimumFractionDigits: 2,
+});
+
+const selectedPricePerDayFormatted = computed(() => {
+  const value = selectedPricePerDay.value;
+  if (value == null) return "—";
+  return currencyFormatter.format(value);
+});
+
+const totalPrice = computed<number | null>(() => {
+  const duration = selectedDuration.value?.days;
+  const price = selectedPricePerDay.value;
+  if (!duration || price == null) return null;
+  return duration * price;
+});
+
+const totalPriceFormatted = computed(() => {
+  const value = totalPrice.value;
+  if (value == null) return "—";
+  return currencyFormatter.format(value);
+});
 
 function validate(): boolean {
   errors.description = form.description.trim() ? null : "Requerido"
   errors.type = form.type ? null : "Requerido"
-  errors.cinemaId = form.cinemaId.trim() ? null : "Requerido"
+  const cinemaVal = (form.cinemaId ?? "").trim()
+  if (!cinemaVal) {
+    errors.cinemaId = "Selecciona un cine"
+  } else if (fetchingCinemaPrice.value) {
+    errors.cinemaId = "Espera a que se carguen las tarifas del cine."
+  } else if (!cinemaPrices.value) {
+    errors.cinemaId = "El cine seleccionado no tiene tarifas configuradas."
+  } else {
+    errors.cinemaId = null
+  }
   errors.durationDaysId = form.durationDaysId ? null : "Requerido"
 
   // Reglas según tipo
@@ -332,14 +443,17 @@ async function onSubmit() {
   if (!validate()) return;
   loading.value = true;
   try {
+    const cinemaVal = (form.cinemaId ?? "").trim();
+    const durationVal = form.durationDaysId;
+
     const payload: CreateAnuncioMultipart = {
       content: form.content,
       description: form.description,
       type: form.type as AddType,
-      cinemaId: form.cinemaId,
+      cinemaId: cinemaVal,
       userId: form.userId as string,
       urlContent: form.urlContent,
-      durationDaysId: form.durationDaysId,
+      durationDaysId: durationVal,
       file: form.file as File,
     };
     const created = await createAnuncio(payload);
