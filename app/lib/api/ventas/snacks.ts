@@ -37,7 +37,7 @@ export interface CreateSnackMultipart {
   price: number;
   cinemaId: string;
   urlImage?: string;
-  imageFile: File | null;
+  imageFile?: File | null;
 }
 
 export const toSnackFormData = (snack: CreateSnackMultipart): FormData => {
