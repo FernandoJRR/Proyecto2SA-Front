@@ -58,11 +58,17 @@
             :loading="cinemasLoading"
             @change="() => runSearch(0)"
           />
-          <InputText
-            v-model.trim="filters.userId"
-            placeholder="User ID"
+          <Dropdown
+            v-model="filters.userId"
+            :options="sponsorFilterOptions"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Sponsor"
             class="w-full"
-            @keydown.enter="() => runSearch(0)"
+            showClear
+            filter
+            :loading="sponsorsLoading"
+            @change="() => runSearch(0)"
           />
           <div class="flex items-center justify-end gap-2">
             <Button
@@ -213,7 +219,6 @@ import { computed, onMounted, reactive, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
-import InputText from "primevue/inputtext";
 import Dropdown from "primevue/dropdown";
 import Button from "primevue/button";
 import ConfirmDialog from "primevue/confirmdialog";
@@ -231,6 +236,7 @@ import {
 } from "~/lib/api/anuncios/anuncio";
 import { isAdmin } from "~/lib/auth/roles";
 import { getAllCinemas, getCinemasByCompanyId, type CinemaResponseDTO } from "~/lib/api/cinema/cinema";
+import { getSponsoredUsers, type UserResponseDTO } from "~/lib/api/users/user";
 import { useAuthStore } from "~/stores/auth";
 
 const authStore = useAuthStore();
@@ -300,6 +306,34 @@ const cinemaFilterOptions = computed(() => {
 
 const cinemasLoading = computed(() => cinemaStatus.value === "loading");
 
+const {
+  state: sponsorState,
+  asyncStatus: sponsorStatus,
+} = useCustomQuery({
+  key: ["anuncios-sponsors"],
+  query: () => getSponsoredUsers(),
+});
+
+const sponsorOptions = computed<Array<{ label: string; value: string }>>(() =>
+  (sponsorState.value.data ?? []).map((user: UserResponseDTO) => {
+    const name = [user.profile?.firstName, user.profile?.lastName]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+    return {
+      label: name ? `${name} — ${user.email}` : user.email,
+      value: user.id,
+    };
+  })
+);
+
+const sponsorFilterOptions = computed(() => [
+  { label: "— Todos los sponsors —", value: null },
+  ...sponsorOptions.value,
+]);
+
+const sponsorsLoading = computed(() => sponsorStatus.value === "loading");
+
 async function runSearch(p = 0) {
   loading.value = true;
   try {
@@ -330,12 +364,17 @@ async function runSearch(p = 0) {
       }
     }
 
+    const allowedSponsorIds = sponsorOptions.value.map((option) => option.value);
+    if (filters.userId && !allowedSponsorIds.includes(filters.userId)) {
+      filters.userId = null;
+    }
+
     const clean: FilterAnuncios = {
       type: filters.type ?? null,
       paymentState: filters.paymentState ?? null,
       active: typeof filters.active === "boolean" ? filters.active : null,
       cinemaId: filters.cinemaId ?? null,
-      userId: filters.userId?.trim() || null,
+      userId: filters.userId ?? null,
     };
     const resp = await searchAnuncios(clean, p);
     rows.value = resp.content;
