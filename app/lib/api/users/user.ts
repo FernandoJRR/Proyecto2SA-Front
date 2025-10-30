@@ -12,6 +12,7 @@ export interface CreateUserRequest {
 
 export interface CreateAdministrativeUserRequest extends CreateUserRequest {
   role: "ADMIN" | "CINEMA_ADMIN";
+  companyId?: string;
 }
 
 export interface CreateNoAdministrativeUserRequest extends CreateUserRequest {

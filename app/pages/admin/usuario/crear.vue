@@ -4,14 +4,20 @@
       <div class="flex items-center justify-between gap-4">
         <div class="flex items-center gap-3">
           <NuxtLink to="/admin">
-            <Button icon="pi pi-arrow-left" label="Volver" size="small" aria-label="Volver al panel" />
+            <Button
+              icon="pi pi-arrow-left"
+              label="Volver"
+              size="small"
+              aria-label="Volver al panel"
+            />
           </NuxtLink>
           <div>
             <h1 class="text-2xl font-extrabold tracking-tight text-slate-900">
               Crear usuario administrador
             </h1>
             <p class="text-slate-600">
-              Registra cuentas con privilegios administrativos siguiendo las políticas de acceso.
+              Registra cuentas con privilegios administrativos siguiendo las
+              políticas de acceso.
             </p>
           </div>
         </div>
@@ -21,7 +27,12 @@
     <main class="max-w-4xl mx-auto" role="main">
       <div class="rounded-2xl border border-slate-200 bg-white shadow">
         <div class="p-6 sm:p-8">
-          <Form v-slot="$form" :initialValues="initialValues" :resolver="resolver" @submit="onFormSubmit">
+          <Form
+            v-slot="$form"
+            :initialValues="initialValues"
+            :resolver="resolver"
+            @submit="onFormSubmit"
+          >
             <div class="space-y-8">
               <section>
                 <h2 class="text-lg font-semibold mb-4">Datos personales</h2>
@@ -29,7 +40,12 @@
                   <div>
                     <FloatLabel>
                       <label for="firstName">Nombre</label>
-                      <InputText id="firstName" name="firstName" class="w-full" autocomplete="given-name" />
+                      <InputText
+                        id="firstName"
+                        name="firstName"
+                        class="w-full"
+                        autocomplete="given-name"
+                      />
                     </FloatLabel>
                     <Message
                       v-if="$form.firstName?.invalid"
@@ -43,7 +59,12 @@
                   <div>
                     <FloatLabel>
                       <label for="lastName">Apellido</label>
-                      <InputText id="lastName" name="lastName" class="w-full" autocomplete="family-name" />
+                      <InputText
+                        id="lastName"
+                        name="lastName"
+                        class="w-full"
+                        autocomplete="family-name"
+                      />
                     </FloatLabel>
                     <Message
                       v-if="$form.lastName?.invalid"
@@ -58,12 +79,20 @@
               </section>
 
               <section>
-                <h2 class="text-lg font-semibold mb-4">Credenciales de acceso</h2>
+                <h2 class="text-lg font-semibold mb-4">
+                  Credenciales de acceso
+                </h2>
                 <div class="space-y-6">
                   <div>
                     <FloatLabel>
                       <label for="email">Correo electrónico</label>
-                      <InputText id="email" name="email" type="email" class="w-full" autocomplete="email" />
+                      <InputText
+                        id="email"
+                        name="email"
+                        type="email"
+                        class="w-full"
+                        autocomplete="email"
+                      />
                     </FloatLabel>
                     <Message
                       v-if="$form.email?.invalid"
@@ -75,7 +104,9 @@
                     </Message>
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Rol administrativo</label>
+                    <label class="block text-sm font-medium text-slate-700 mb-1"
+                      >Rol administrativo</label
+                    >
                     <Dropdown
                       id="role"
                       name="role"
@@ -85,7 +116,9 @@
                       optionValue="value"
                       placeholder="Selecciona un rol"
                       class="w-full"
-                      @update:modelValue="$form.role?.setValue?.($event)"
+                      @update:modelValue="
+                        (value) => handleRoleChange(value, $form)
+                      "
                     />
                     <Message
                       v-if="$form.role?.invalid"
@@ -95,11 +128,62 @@
                     >
                       {{ $form.role.error?.message }}
                     </Message>
-                    <p class="mt-1 text-xs text-slate-500" v-if="$form.role?.value === 'ADMIN'">
+                    <p
+                      class="mt-1 text-xs text-slate-500"
+                      v-if="$form.role?.value === 'ADMIN'"
+                    >
                       Acceso completo a la administración del sistema.
                     </p>
-                    <p class="mt-1 text-xs text-slate-500" v-else-if="$form.role?.value === 'CINEMA_ADMIN'">
+                    <p
+                      class="mt-1 text-xs text-slate-500"
+                      v-else-if="$form.role?.value === 'CINEMA_ADMIN'"
+                    >
                       Acceso enfocado a la gestión de cines y anuncios.
+                    </p>
+                  </div>
+                  <div v-if="$form.role?.value === 'CINEMA_ADMIN'">
+                    <label
+                      class="block text-sm font-medium text-slate-700 mb-1"
+                      for="companyId"
+                    >
+                      Compañía
+                    </label>
+                    <Dropdown
+                      id="companyId"
+                      name="companyId"
+                      :modelValue="
+                        $form.companyId?.value ?? initialValues.companyId
+                      "
+                      :options="companyOptions"
+                      optionLabel="label"
+                      optionValue="value"
+                      placeholder="Selecciona una compañía"
+                      class="w-full"
+                      filter
+                      :loading="companiesStatus === 'loading'"
+                      :disabled="isCompanySelectionDisabled"
+                      @update:modelValue="$form.companyId?.setValue?.($event)"
+                    />
+                    <Message
+                      v-if="$form.companyId?.invalid"
+                      severity="error"
+                      size="small"
+                      variant="simple"
+                    >
+                      {{ $form.companyId.error?.message }}
+                    </Message>
+                    <p class="mt-1 text-xs text-slate-500">
+                      Selecciona la compañía a la que pertenece este
+                      administrador de cine.
+                    </p>
+                    <p
+                      v-if="
+                        !companyOptions.length && companiesStatus !== 'loading'
+                      "
+                      class="mt-1 text-xs text-amber-600"
+                    >
+                      No hay compañías disponibles. Registra una compañía antes
+                      de crear este usuario.
                     </p>
                   </div>
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -136,7 +220,9 @@
                           toggleMask
                           :inputProps="{ autocomplete: 'new-password' }"
                         />
-                        <label for="confirmPassword">Confirmar contraseña</label>
+                        <label for="confirmPassword"
+                          >Confirmar contraseña</label
+                        >
                       </FloatLabel>
                       <Message
                         v-if="$form.confirmPassword?.invalid"
@@ -153,8 +239,20 @@
             </div>
 
             <div class="mt-8 flex items-center justify-end gap-2">
-              <Button type="button" label="Cancelar" severity="secondary" outlined @click="goBack" />
-              <Button type="submit" label="Crear usuario" icon="pi pi-save" :loading="loading" :disabled="loading" />
+              <Button
+                type="button"
+                label="Cancelar"
+                severity="secondary"
+                outlined
+                @click="goBack"
+              />
+              <Button
+                type="submit"
+                label="Crear usuario"
+                icon="pi pi-save"
+                :loading="loading"
+                :disabled="loading"
+              />
             </div>
           </Form>
         </div>
@@ -164,7 +262,7 @@
 </template>
 
 <script lang="ts" setup>
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { Form } from '@primevue/forms'
 import { zodResolver } from '@primevue/forms/resolvers/zod'
 import { FloatLabel, InputText, Password } from 'primevue'
@@ -172,7 +270,8 @@ import Dropdown from 'primevue/dropdown'
 import Message from 'primevue/message'
 import { toast } from 'vue-sonner'
 import { z } from 'zod'
-import { createAdministrativeUser } from '~/lib/api/users/user'
+import { createAdministrativeUser, type CreateAdministrativeUserRequest } from '~/lib/api/users/user'
+import { getCompanies, type CompanyResponseDTO } from '~/lib/api/company/company'
 
 const initialValues = reactive({
   firstName: '',
@@ -181,6 +280,7 @@ const initialValues = reactive({
   role: 'ADMIN' as 'ADMIN' | 'CINEMA_ADMIN',
   password: '',
   confirmPassword: '',
+  companyId: '',
 })
 
 const resolver = ref(
@@ -208,11 +308,21 @@ const resolver = ref(
         role: z.enum(['ADMIN', 'CINEMA_ADMIN'], {
           required_error: 'Selecciona un rol.',
         }),
+        companyId: z.string().optional(),
       })
       .refine((data) => data.password === data.confirmPassword, {
         message: 'Las contraseñas no coinciden.',
         path: ['confirmPassword'],
       })
+      .refine(
+        (data) =>
+          data.role !== 'CINEMA_ADMIN' ||
+          (typeof data.companyId === 'string' && data.companyId.trim().length > 0),
+        {
+          message: 'Selecciona una compañía.',
+          path: ['companyId'],
+        }
+      )
   )
 )
 
@@ -223,6 +333,26 @@ const roleOptions = [
   { label: 'Administrador de cine', value: 'CINEMA_ADMIN' as const },
 ]
 
+const {
+  state: companiesState,
+  asyncStatus: companiesStatus,
+  refetch: refetchCompanies,
+} = useCustomQuery({
+  key: ['companies-for-cinema-admin'],
+  query: () => getCompanies(),
+})
+
+const companyOptions = computed<Array<{ label: string; value: string }>>(() =>
+  (companiesState.value.data ?? []).map((company: CompanyResponseDTO) => ({
+    label: company.name,
+    value: company.id,
+  }))
+)
+
+const isCompanySelectionDisabled = computed(
+  () => companiesStatus.value === 'loading' || companyOptions.value.length === 0
+)
+
 const onFormSubmit = async (e: any) => {
   if (!e.valid) return
   loading.value = true
@@ -230,7 +360,7 @@ const onFormSubmit = async (e: any) => {
   try {
     const values = e.values
 
-    await createAdministrativeUser({
+    const payload: CreateAdministrativeUserRequest = {
       email: values.email,
       password: values.password,
       role: values.role,
@@ -238,7 +368,13 @@ const onFormSubmit = async (e: any) => {
         firstName: values.firstName,
         lastName: values.lastName,
       },
-    })
+    }
+
+    if (payload.role === 'CINEMA_ADMIN') {
+      payload.companyId = values.companyId?.trim()
+    }
+
+    await createAdministrativeUser(payload)
 
     toast.success('Usuario administrador creado correctamente', {
       description: 'Ahora puede iniciar sesión con sus credenciales.',
@@ -255,5 +391,15 @@ const onFormSubmit = async (e: any) => {
 
 function goBack() {
   navigateTo('/admin')
+}
+
+function handleRoleChange(value: 'ADMIN' | 'CINEMA_ADMIN', form: any) {
+  form.role?.setValue?.(value)
+  if (value !== 'CINEMA_ADMIN') {
+    form.companyId?.setValue?.('')
+    form.companyId?.setTouched?.(false)
+  } else {
+    refetchCompanies()
+  }
 }
 </script>
