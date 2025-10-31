@@ -61,6 +61,19 @@ export const getMovieById = async (id: string): Promise<MovieResponseDTO> => {
   return response;
 };
 
+export const getMoviesByIds = async (
+  ids: string[]
+): Promise<MovieResponseDTO[]> => {
+  const response = await $api<MovieResponseDTO[]>(
+    `${CURRENT_MOVIE_URI}/public/ids`,
+    {
+      method: "POST",
+      body: ids,
+    }
+  );
+  return response;
+};
+
 export const deleteMovieById = async (id: string): Promise<void> => {
   await $api<void>(`${CURRENT_MOVIE_URI}/${id}`, {
     method: "DELETE",
@@ -139,4 +152,4 @@ export const updateMovie = async (
     }
   );
   return response;
-}
+};
