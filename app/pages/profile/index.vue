@@ -104,6 +104,39 @@
               <p class="mt-1 text-base text-slate-900">{{ lastUpdated }}</p>
             </div>
           </div>
+
+          <div class="sm:col-span-2 rounded-xl border border-slate-200 bg-slate-50 p-5 space-y-4">
+            <div>
+              <p class="text-sm font-semibold text-slate-800">Recargar billetera</p>
+              <p class="text-xs text-slate-600">
+                Ingresa el monto que deseas añadir a tu saldo disponible.
+              </p>
+            </div>
+            <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+              <InputNumber
+                v-model="rechargeAmount"
+                mode="currency"
+                currency="GTQ"
+                :minFractionDigits="2"
+                :maxFractionDigits="2"
+                :min="1"
+                :disabled="recharging"
+                class="w-full sm:max-w-xs"
+                placeholder="Q0.00"
+              />
+              <Button
+                label="Recargar"
+                icon="pi pi-plus"
+                severity="success"
+                :loading="recharging"
+                :disabled="recharging || !canRecharge"
+                @click="handleRechargeWallet"
+              />
+            </div>
+            <p v-if="rechargeError" class="text-sm text-red-600">
+              {{ rechargeError }}
+            </p>
+          </div>
         </div>
       </section>
     </main>
@@ -113,10 +146,17 @@
 <script lang="ts" setup>
 import { computed, ref } from 'vue'
 import Button from 'primevue/button'
+import InputNumber from 'primevue/inputnumber'
 import { storeToRefs } from 'pinia'
 import { toast } from 'vue-sonner'
 import { useAuthStore } from '~/stores/auth'
-import { createWallet, getWalletByOwner, OwnerType, type Wallet } from '~/lib/api/wallets/wallet'
+import {
+  createWallet,
+  getWalletByOwner,
+  rechargeWallet,
+  OwnerType,
+  type Wallet,
+} from '~/lib/api/wallets/wallet'
 import { useCustomQuery } from '~/composables/useCustomQuery'
 
 const authStore = useAuthStore()
@@ -175,6 +215,11 @@ const lastUpdated = computed(() => {
 })
 
 const creatingWallet = ref(false)
+const recharging = ref(false)
+const rechargeAmount = ref<number | null>(100)
+const rechargeError = ref<string | null>(null)
+
+const canRecharge = computed(() => Boolean(wallet.value && userId.value))
 
 async function handleCreateWallet() {
   if (!userId.value || creatingWallet.value) return
@@ -191,6 +236,33 @@ async function handleCreateWallet() {
     toast.error(message)
   } finally {
     creatingWallet.value = false
+  }
+}
+
+async function handleRechargeWallet() {
+  if (!canRecharge.value || recharging.value) return
+
+  rechargeError.value = null
+
+  const amount = typeof rechargeAmount.value === 'number' ? rechargeAmount.value : 0
+  if (!Number.isFinite(amount) || amount <= 0) {
+    rechargeError.value = 'Ingresa un monto mayor a cero.'
+    return
+  }
+
+  recharging.value = true
+
+  try {
+    await rechargeWallet(userId.value, { amount })
+    toast.success('Saldo recargado correctamente.')
+    rechargeAmount.value = 100
+    await walletRefetch()
+  } catch (error: any) {
+    const message = error?.data?.message ?? error?.message ?? 'No se pudo recargar la wallet.'
+    rechargeError.value = message
+    toast.error(message)
+  } finally {
+    recharging.value = false
   }
 }
 
