@@ -65,7 +65,7 @@
               {{ formatDate(data.createdAt) }}
             </template>
           </Column>
-          <Column header="Acciones" headerStyle="width:14rem">
+          <Column header="Acciones" headerStyle="width:16rem">
             <template #body="{ data }">
               <div class="flex flex-wrap items-center gap-1">
                 <RouterLink :to="`/admin/cines/${data.id}`">
@@ -77,16 +77,9 @@
                 <RouterLink :to="`/admin/cines/sala/cine/${data.id}`">
                   <Button label="Salas" severity="primary" variant="text" rounded aria-label="Administrar salas" />
                 </RouterLink>
-                <Button
-                  label="Crear wallet"
-                  severity="success"
-                  variant="text"
-                  rounded
-                  :loading="walletInProgress === data.id"
-                  :disabled="walletInProgress === data.id"
-                  aria-label="Crear wallet para el cine"
-                  @click="() => handleCreateWallet(data.id)"
-                />
+                <RouterLink :to="`/admin/cines/wallet/${data.id}`">
+                  <Button label="Wallet" severity="success" variant="text" rounded aria-label="Ver wallet del cine" />
+                </RouterLink>
               </div>
             </template>
           </Column>
@@ -114,15 +107,13 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue'
+import { computed, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
-import { toast } from 'vue-sonner'
 import { getAllCinemas, getCinemasByCompanyId, type CinemaResponseDTO } from '~/lib/api/cinema/cinema'
-import { createWallet, OwnerType } from '~/lib/api/wallets/wallet'
 import { useAuthStore } from '~/stores/auth'
 import { useCustomQuery } from '~/composables/useCustomQuery'
 
@@ -138,28 +129,9 @@ const { state, asyncStatus: status, refetch } = useCustomQuery({
 
 const cinemas = computed<CinemaResponseDTO[]>(() => state.value.data ?? [])
 
-const walletInProgress = ref<string | null>(null)
-
 watch(companyId, () => {
   refetch()
 })
-
-async function handleCreateWallet(cinemaId: string) {
-  if (walletInProgress.value) return
-  walletInProgress.value = cinemaId
-  try {
-    await createWallet({
-      ownerId: cinemaId,
-      ownerType: OwnerType.CINEMA,
-    })
-    toast.success('Wallet creada correctamente.')
-  } catch (error: any) {
-    const message = error?.data?.message ?? error?.message ?? 'No se pudo crear la wallet.'
-    toast.error(message)
-  } finally {
-    walletInProgress.value = null
-  }
-}
 
 function formatCurrency(value?: number) {
   if (typeof value !== 'number') return '—'

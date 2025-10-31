@@ -28,7 +28,7 @@
           </template>
           <template #end>
             <div class="hidden lg:flex items-center">
-              <RouterLink to="/perfil" v-if="authenticated">
+              <RouterLink to="/profile" v-if="authenticated">
                 <Button severity="secondary" variant="text"
                   ><i class="pi pi-user" /> Ver Perfil</Button
                 >

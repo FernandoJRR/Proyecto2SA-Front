@@ -27,8 +27,8 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
   modules: ['@primevue/nuxt-module', '@pinia/nuxt', '@pinia/colada-nuxt', 'pinia-plugin-persistedstate/nuxt', '@nuxt/test-utils/module'],
   app: {
-    baseURL: '/app/',
-    buildAssetsDir: '/app/_nuxt/',
+    baseURL: '/',
+    buildAssetsDir: '/_nuxt/',
   },
   primevue: {
     options: {
