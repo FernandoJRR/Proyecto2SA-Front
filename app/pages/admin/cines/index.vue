@@ -80,6 +80,12 @@
                 <RouterLink :to="`/admin/cines/wallet/${data.id}`">
                   <Button label="Wallet" severity="success" variant="text" rounded aria-label="Ver wallet del cine" />
                 </RouterLink>
+                <RouterLink :to="`/admin/cines/peliculas/cine-${data.id}`">
+                  <Button label="Películas" severity="help" variant="text" rounded aria-label="Administrar películas del cine" />
+                </RouterLink>
+                <RouterLink :to="`/admin/cines/funciones/cine-${data.id}`">
+                  <Button label="Funciones" severity="secondary" variant="text" rounded aria-label="Administrar funciones del cine" />
+                </RouterLink>
               </div>
             </template>
           </Column>
