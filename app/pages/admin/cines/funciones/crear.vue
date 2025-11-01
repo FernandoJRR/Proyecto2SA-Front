@@ -177,7 +177,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import Dropdown from 'primevue/dropdown'
@@ -273,6 +273,16 @@ const {
     return getMoviesByIds(ids)
   },
 })
+
+watch(
+  movieIdsKey,
+  (value, previous) => {
+    if (value === previous) return
+    if (value === 'empty') return
+    refetchMovies()
+  },
+  { immediate: false }
+)
 
 const moviesById = computed(() => {
   const data = moviesState.value.data as MovieResponseDTO[] | undefined
