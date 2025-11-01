@@ -1,3 +1,4 @@
+import type { Page } from "../utils/paginated";
 import type { SnackResponseDTO } from "./snacks";
 import type { TicketResponseDTO } from "./tickets";
 
@@ -63,6 +64,7 @@ export interface CreateSaleDTO {
   tickets: CreateSaleLineTicketDTO[];
 }
 
+export type SalePage = Page<SaleResponseDTO>;
 
 export const createSale = async (
   data: CreateSaleDTO
@@ -82,33 +84,35 @@ export const getSaleById = async (
 }
 
 export const getSalesByCinema = async (
-  cinemaId: string
-): Promise<SaleResponseDTO[]> => {
-  return $api<SaleResponseDTO[]>(
+  cinemaId: string,
+  page: number = 0
+): Promise<SalePage> => {
+  return $api<SalePage>(
     `${CURRENT_SALES_URI}/cinema/${cinemaId}`,
     {
       method: "GET",
+      params: { page },
     }
   );
 }
 
 
 export const getSalesByClient = async (
-  clientId: string
-): Promise<SaleResponseDTO[]> => {
-  return $api<SaleResponseDTO[]>(
-    `${CURRENT_SALES_URI}/customer/${clientId}`,
-    {
-      method: "GET",
-    }
-  );
-}
-
-export const getAllSales = async (): Promise<SaleResponseDTO[]> => {
-  return $api<SaleResponseDTO[]>(`${CURRENT_SALES_URI}/all`, {
+  clientId: string,
+  page: number = 0
+): Promise<SalePage> => {
+  return $api<SalePage>(`${CURRENT_SALES_URI}/customer/${clientId}`, {
     method: "GET",
+    params: { page },
   });
-}
+};
+
+export const getAllSales = async (page: number = 0): Promise<SalePage> => {
+  return $api<SalePage>(`${CURRENT_SALES_URI}/all`, {
+    method: "GET",
+    params: { page },
+  });
+};
 
 export const claimTicketMoney = async (
     saleLineTicketId: string
