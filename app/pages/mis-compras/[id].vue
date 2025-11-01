@@ -20,12 +20,23 @@
             </p>
           </div>
         </div>
-        <Tag
-          v-if="sale"
-          :value="formatStatus(sale.status)"
-          :severity="statusSeverity(sale.status)"
-          rounded
-        />
+        <div v-if="sale" class="flex items-center gap-3">
+          <Tag
+            :value="formatStatus(sale.status)"
+            :severity="statusSeverity(sale.status)"
+            rounded
+          />
+          <Button
+            v-if="sale.status === SaleStatusType.PAID_ERROR"
+            icon="pi pi-refresh"
+            label="Reintentar pago"
+            size="small"
+            severity="warning"
+            :loading="retrying"
+            :disabled="retrying"
+            @click="handleRetryPayment"
+          />
+        </div>
       </div>
     </header>
 
@@ -268,16 +279,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import Button from "primevue/button";
 import Tag from "primevue/tag";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
+import { toast } from "vue-sonner";
 import { useCustomQuery } from "~/composables/useCustomQuery";
 import {
   getSaleById,
   SaleStatusType,
+  retrySale,
   type SaleResponseDTO,
 } from "~/lib/api/ventas/sales";
 import {
@@ -334,6 +347,7 @@ const cinema = computed<CinemaResponseDTO | null>(() => {
 });
 
 const loading = computed(() => saleStatus.value === "loading");
+const retrying = ref(false);
 
 const errorMessage = computed(() => {
   const maybeError = saleState.value.error as
@@ -341,6 +355,25 @@ const errorMessage = computed(() => {
     | undefined;
   return maybeError?.data?.message ?? maybeError?.message ?? null;
 });
+
+async function handleRetryPayment() {
+  const id = saleId.value?.trim();
+  if (!id || retrying.value) return;
+  try {
+    retrying.value = true;
+    await retrySale(id);
+    toast.success("Intento de pago reenviado correctamente.");
+    await refetchSale();
+  } catch (error: any) {
+    const message =
+      error?.data?.message ??
+      error?.message ??
+      "No se pudo reintentar el pago.";
+    toast.error(message);
+  } finally {
+    retrying.value = false;
+  }
+}
 
 function formatCurrency(value?: number | null) {
   if (typeof value !== "number" || Number.isNaN(value)) return "Q0.00";
