@@ -48,7 +48,7 @@ export const rechargeWallet = async (
   const response = await $api<Wallet>(
     `${CURRENT_WALLET_URL}/${ownerId}/recharge`,
     {
-      method: "PATCH",
+      method: "POST",
       body: body,
     }
   );
