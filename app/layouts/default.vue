@@ -261,13 +261,19 @@ const menuModel = [
   {
     horizontalBar: true,
     verticalBar: true,
-    label: "Mis Compras",
+    label: "Compras",
     icon: "pi pi-shopping-bag",
     items: [
       {
         label: "Mis Compras",
         icon: "pi pi-tags",
         to: "/mis-compras",
+        accessRoles: [AppRoles.CLIENT],
+      },
+      {
+        label: "Tickets",
+        icon: "pi pi-ticket",
+        to: "/tickets",
         accessRoles: [AppRoles.CLIENT],
       },
     ],
@@ -279,16 +285,10 @@ const menuModel = [
     icon: "pi pi-briefcase",
     items: [
       {
-        label: "Tickets Online",
+        label: "Crear Venta",
         icon: "pi pi-calendar",
-        to: "/tickets",
-        accessRoles: [AppRoles.CLIENT, AppRoles.CINEMA_ADMIN, AppRoles.ADMIN],
-      },
-      {
-        label: "Órdenes",
-        icon: "pi pi-shopping-cart",
-        to: "/ordenes",
-        accessRoles: [AppRoles.CLIENT, AppRoles.CINEMA_ADMIN, AppRoles.ADMIN],
+        to: "/ventas",
+        accessRoles: [AppRoles.CINEMA_ADMIN, AppRoles.ADMIN],
       },
     ],
   },
