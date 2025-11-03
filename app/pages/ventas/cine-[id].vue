@@ -166,8 +166,9 @@
                 severity="secondary"
                 text
                 rounded
-                :loading="showtimesLoading"
-                @click="() => refetchShowtimes()"
+                :loading="showtimesLoading || seatsOccupiedLoading"
+                :disabled="showtimesLoading || seatsOccupiedLoading"
+                @click="refreshShowtimesAndAvailability"
                 type="button"
                 aria-label="Actualizar funciones"
               />
@@ -192,6 +193,12 @@
                 class="divide-y divide-slate-100"
               >
                 <div
+                  v-if="seatsOccupiedErrorMessage"
+                  class="px-6 py-4 text-sm text-amber-700 bg-amber-50"
+                >
+                  {{ seatsOccupiedErrorMessage }} Intenta actualizar las funciones.
+                </div>
+                <div
                   v-for="showtime in showtimes"
                   :key="showtime.id"
                   class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-6 py-5 bg-white"
@@ -207,7 +214,19 @@
                       {{ formatShowtimeSchedule(showtime) }}
                     </p>
                     <p class="text-xs text-slate-500">
-                      Boletos disponibles: {{ showtime.ticketsAvailable ?? "Sin dato" }}
+                      Disponibles: {{ availabilityLabel(showtime.id) }}
+                    </p>
+                    <p
+                      v-if="occupancyLabel(showtime.id)"
+                      class="text-xs text-slate-500"
+                    >
+                      {{ occupancyLabel(showtime.id) }}
+                    </p>
+                    <p
+                      v-if="isShowtimeSoldOut(showtime.id)"
+                      class="text-xs font-semibold text-red-600"
+                    >
+                      Función agotada
                     </p>
                     <p class="text-xs text-slate-500">
                       Precio: {{ formatCurrency(showtime.price) }}
@@ -224,7 +243,7 @@
                       :inputId="`ticket-qty-${showtime.id}`"
                       v-model="ticketQuantities[showtime.id]"
                       :min="0"
-                      :max="showtime.ticketsAvailable ?? undefined"
+                      :max="maxTicketsForShowtime(showtime.id)"
                       :step="1"
                       :minFractionDigits="0"
                       :maxFractionDigits="0"
@@ -233,7 +252,7 @@
                       incrementButtonIcon="pi pi-plus"
                       decrementButtonIcon="pi pi-minus"
                       class="w-full"
-                      :disabled="submitting"
+                      :disabled="submitting || isShowtimeSoldOut(showtime.id)"
                     />
                   </div>
                 </div>
@@ -410,6 +429,7 @@ import {
 } from "~/lib/api/cinema/showtime";
 import { getMoviesByIds, type MovieResponseDTO } from "~/lib/api/movies/movie";
 import { createSale } from "~/lib/api/ventas/sales";
+import { getQuantitySeatsOccupied } from "~/lib/api/ventas/tickets";
 import { useCustomQuery } from "~/composables/useCustomQuery";
 
 const route = useRoute();
@@ -499,6 +519,66 @@ const showtimesErrorMessage = computed(() => {
     | { message?: string }
     | undefined;
   return maybeError?.message ?? null;
+});
+
+const showtimeIds = computed(() => {
+  return showtimes.value.map((item) => item.id).filter(Boolean);
+});
+
+const showtimeIdsKey = computed(() => {
+  if (!showtimeIds.value.length) return "empty";
+  return [...showtimeIds.value].sort().join("|");
+});
+
+const {
+  state: seatsOccupiedState,
+  asyncStatus: seatsOccupiedStatus,
+  refetch: refetchSeatsOccupied,
+} = useCustomQuery({
+  key: ["venta-showtimes-occupied", () => showtimeIdsKey.value],
+  query: async () => {
+    const ids = showtimeIds.value;
+    if (!ids.length) {
+      return {};
+    }
+    try {
+      const responses = await Promise.all(
+        ids.map(async (id) => {
+          const { quantity } = await getQuantitySeatsOccupied(id);
+          return [id, quantity] as const;
+        })
+      );
+      return Object.fromEntries(responses);
+    } catch (error: any) {
+      const message =
+        error?.data?.message ??
+        error?.message ??
+        "No se pudo obtener la disponibilidad actual de las funciones.";
+      throw new Error(message);
+    }
+  },
+});
+
+const seatsOccupiedData = computed<Record<string, number>>(() => {
+  const data = seatsOccupiedState.value.data as
+    | Record<string, number>
+    | undefined;
+  return data ?? {};
+});
+
+const seatsOccupiedLoading = computed(
+  () => seatsOccupiedStatus.value === "loading"
+);
+
+const seatsOccupiedErrorMessage = computed(() => {
+  const maybeError = seatsOccupiedState.value.error as
+    | { message?: string }
+    | undefined;
+  if (!maybeError) return null;
+  return (
+    maybeError.message ??
+    "No se pudo obtener la disponibilidad actualizada de las funciones."
+  );
 });
 
 const snackQuantities = reactive<Record<string, number>>({});
@@ -611,6 +691,68 @@ const showtimesMap = computed(() => {
   return map;
 });
 
+const showtimesAvailability = computed(() => {
+  const map = new Map<
+    string,
+    {
+      total: number | null;
+      occupied: number;
+      available: number | null;
+      soldOut: boolean;
+    }
+  >();
+  for (const showtime of showtimes.value) {
+    const hall = showtime.hall;
+    const hallCapacity =
+      hall &&
+      typeof hall.rows === "number" &&
+      typeof hall.columns === "number"
+        ? hall.rows * hall.columns
+        : null;
+    const totalSeats =
+      typeof showtime.ticketsAvailable === "number"
+        ? showtime.ticketsAvailable
+        : hallCapacity;
+    const occupied =
+      typeof seatsOccupiedData.value[showtime.id] === "number"
+        ? Math.max(seatsOccupiedData.value[showtime.id], 0)
+        : 0;
+    const available =
+      typeof totalSeats === "number"
+        ? Math.max(totalSeats - occupied, 0)
+        : null;
+    map.set(showtime.id, {
+      total: typeof totalSeats === "number" ? totalSeats : null,
+      occupied,
+      available,
+      soldOut: typeof available === "number" ? available <= 0 : false,
+    });
+  }
+  return map;
+});
+
+watch(
+  () => Array.from(showtimesAvailability.value.entries()),
+  (entries) => {
+    for (const [showtimeId, info] of entries) {
+      if (!(showtimeId in ticketQuantities)) continue;
+      const currentQuantity = Number(ticketQuantities[showtimeId] ?? 0);
+      if (!Number.isFinite(currentQuantity) || currentQuantity <= 0) continue;
+      if (info.soldOut) {
+        ticketQuantities[showtimeId] = 0;
+        continue;
+      }
+      if (
+        typeof info.available === "number" &&
+        currentQuantity > info.available
+      ) {
+        ticketQuantities[showtimeId] = info.available;
+      }
+    }
+  },
+  { immediate: true }
+);
+
 const selectedSnacks = computed(() =>
   Object.entries(snackQuantities)
     .filter(([, quantity]) => typeof quantity === "number" && quantity > 0)
@@ -638,7 +780,19 @@ const selectedTickets = computed(() =>
     .filter(([showtimeId, quantity]) => {
       const normalizedQuantity = Number(quantity);
       if (!showtimesMap.value.has(showtimeId)) return false;
-      return Number.isFinite(normalizedQuantity) && normalizedQuantity > 0;
+      if (!Number.isFinite(normalizedQuantity) || normalizedQuantity <= 0) {
+        return false;
+      }
+      const availability = showtimesAvailability.value.get(showtimeId);
+      if (availability?.soldOut) return false;
+      if (
+        availability &&
+        typeof availability.available === "number" &&
+        normalizedQuantity > availability.available
+      ) {
+        return false;
+      }
+      return true;
     })
     .map(([showtimeId, quantity]) => ({
       showtimeId,
@@ -676,6 +830,58 @@ const ticketsPayload = computed(() =>
     }))
   )
 );
+
+function availabilityForShowtime(showtimeId: string) {
+  return showtimesAvailability.value.get(showtimeId) ?? null;
+}
+
+function availableTicketsCount(showtimeId: string) {
+  const info = availabilityForShowtime(showtimeId);
+  if (!info) return null;
+  if (typeof info.available === "number") return info.available;
+  return null;
+}
+
+function availabilityLabel(showtimeId: string) {
+  const info = availabilityForShowtime(showtimeId);
+  if (!info) {
+    return seatsOccupiedLoading.value ? "Calculando…" : "Sin dato";
+  }
+  if (info.soldOut) return "Agotada";
+  if (typeof info.available === "number") {
+    return `${info.available} disp.`;
+  }
+  return seatsOccupiedLoading.value ? "Calculando…" : "Sin dato";
+}
+
+function occupancyLabel(showtimeId: string) {
+  const info = availabilityForShowtime(showtimeId);
+  if (!info) return null;
+  if (typeof info.total === "number") {
+    return `${info.occupied}/${info.total} ocupados`;
+  }
+  return `Ocupados: ${info.occupied}`;
+}
+
+function isShowtimeSoldOut(showtimeId: string) {
+  return availabilityForShowtime(showtimeId)?.soldOut ?? false;
+}
+
+function maxTicketsForShowtime(showtimeId: string) {
+  const available = availableTicketsCount(showtimeId);
+  if (typeof available === "number") {
+    return available;
+  }
+  const showtime = showtimesMap.value.get(showtimeId);
+  if (
+    showtime &&
+    typeof showtime.ticketsAvailable === "number" &&
+    showtime.ticketsAvailable >= 0
+  ) {
+    return showtime.ticketsAvailable;
+  }
+  return undefined;
+}
 
 const totalTickets = computed(() =>
   selectedTickets.value.reduce((total, item) => total + item.quantity, 0)
@@ -720,6 +926,10 @@ watch(
     errors.tickets = null;
   }
 );
+
+async function refreshShowtimesAndAvailability() {
+  await Promise.all([refetchShowtimes(), refetchSeatsOccupied()]);
+}
 
 function resetForm() {
   form.clientCode = "";
@@ -770,8 +980,12 @@ async function handleSubmit() {
     });
 
     toast.success("La venta se registró correctamente.");
-    resetForm();
-    await Promise.all([refetchSnacks(), refetchShowtimes(), refetchMovies()]);
+   resetForm();
+    await Promise.all([
+      refetchSnacks(),
+      refreshShowtimesAndAvailability(),
+      refetchMovies(),
+    ]);
   } catch (error: any) {
     const message =
       error?.data?.message ??

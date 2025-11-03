@@ -33,6 +33,12 @@
     </header>
 
     <main class="max-w-7xl mx-auto" role="main">
+      <div
+        v-if="seatsOccupiedErrorMessage"
+        class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700"
+      >
+        {{ seatsOccupiedErrorMessage }} Intenta recargar la información.
+      </div>
       <div class="rounded-xl border border-slate-200 bg-white">
         <DataTable
           :value="rows"
@@ -116,13 +122,21 @@
             </template>
           </Column>
 
-          <Column header="Tickets disponibles">
+          <Column header="Disponibilidad">
             <template #body="{ data }">
-              <Tag
-                :value="String(data.ticketsAvailable ?? 0)"
-                severity="secondary"
-                rounded
-              />
+              <div class="flex flex-col gap-1">
+                <Tag
+                  :value="availabilityTagLabel(data.availability ?? null)"
+                  :severity="availabilityTagSeverity(data.availability ?? null)"
+                  rounded
+                />
+                <span
+                  v-if="availabilityOccupancyLabel(data.availability ?? null)"
+                  class="text-xs text-slate-500"
+                >
+                  {{ availabilityOccupancyLabel(data.availability ?? null) }}
+                </span>
+              </div>
             </template>
           </Column>
         </DataTable>
@@ -142,8 +156,19 @@ import { getCinemaById, type CinemaResponseDTO } from '~/lib/api/cinema/cinema'
 import { getShowtimesByCinema, type ShowtimeResponseDTO } from '~/lib/api/cinema/showtime'
 import { getMoviesByIds, type MovieResponseDTO } from '~/lib/api/movies/movie'
 import { useCustomQuery } from '~/composables/useCustomQuery'
+import { getQuantitySeatsOccupied } from '~/lib/api/ventas/tickets'
 
-type ShowtimeWithDetails = ShowtimeResponseDTO & { movie: MovieResponseDTO | null }
+type ShowtimeAvailabilityInfo = {
+  total: number | null
+  occupied: number
+  available: number | null
+  soldOut: boolean
+}
+
+type ShowtimeWithDetails = ShowtimeResponseDTO & {
+  movie: MovieResponseDTO | null
+  availability: ShowtimeAvailabilityInfo | null
+}
 
 const route = useRoute()
 const cinemaId = computed(() => String(route.params.id ?? ''))
@@ -173,6 +198,86 @@ const {
 const showtimes = computed<ShowtimeResponseDTO[]>(() => {
   const data = showtimesState.value.data as ShowtimeResponseDTO[] | undefined
   return data ?? []
+})
+
+const showtimeIds = computed(() => showtimes.value.map((item) => item.id).filter(Boolean))
+
+const showtimeIdsKey = computed(() => {
+  if (!showtimeIds.value.length) return 'empty'
+  return [...showtimeIds.value].sort().join('|')
+})
+
+const {
+  state: seatsOccupiedState,
+  asyncStatus: seatsOccupiedStatus,
+  refetch: refetchSeatsOccupied,
+} = useCustomQuery({
+  key: ['cinema-showtimes-occupied', () => showtimeIdsKey.value],
+  query: async () => {
+    const ids = showtimeIds.value
+    if (!ids.length) return {}
+    try {
+      const responses = await Promise.all(
+        ids.map(async (id) => {
+          const { quantity } = await getQuantitySeatsOccupied(id)
+          return [id, quantity] as const
+        })
+      )
+      return Object.fromEntries(responses)
+    } catch (error: any) {
+      const message =
+        error?.data?.message ??
+        error?.message ??
+        'No se pudo obtener la ocupación de las funciones.'
+      throw new Error(message)
+    }
+  },
+})
+
+const seatsOccupiedData = computed<Record<string, number>>(() => {
+  const data = seatsOccupiedState.value.data as Record<string, number> | undefined
+  return data ?? {}
+})
+
+const seatsOccupiedLoading = computed(() => seatsOccupiedStatus.value === 'loading')
+
+const seatsOccupiedErrorMessage = computed(() => {
+  const maybeError = seatsOccupiedState.value.error as { message?: string } | undefined
+  if (!maybeError) return null
+  return (
+    maybeError.message ??
+    'No se pudo obtener la ocupación actualizada de las funciones.'
+  )
+})
+
+const showtimesAvailability = computed(() => {
+  const map = new Map<string, ShowtimeAvailabilityInfo>()
+  for (const showtime of showtimes.value) {
+    const hall = showtime.hall
+    const hallCapacity =
+      hall &&
+      typeof hall.rows === 'number' &&
+      typeof hall.columns === 'number'
+        ? hall.rows * hall.columns
+        : null
+    const totalSeats =
+      typeof showtime.ticketsAvailable === 'number'
+        ? showtime.ticketsAvailable
+        : hallCapacity
+    const occupied =
+      typeof seatsOccupiedData.value[showtime.id] === 'number'
+        ? Math.max(seatsOccupiedData.value[showtime.id], 0)
+        : 0
+    const available =
+      typeof totalSeats === 'number' ? Math.max(totalSeats - occupied, 0) : null
+    map.set(showtime.id, {
+      total: typeof totalSeats === 'number' ? totalSeats : null,
+      occupied,
+      available,
+      soldOut: typeof available === 'number' ? available <= 0 : false,
+    })
+  }
+  return map
 })
 
 const movieIds = computed(() => {
@@ -227,10 +332,16 @@ const rows = computed<ShowtimeWithDetails[]>(() => {
   return showtimes.value.map((showtime) => ({
     ...showtime,
     movie: moviesById.value.get(showtime.cinemaMovie?.movieId ?? '') ?? null,
+    availability: showtimesAvailability.value.get(showtime.id) ?? null,
   }))
 })
 
-const loading = computed(() => showtimesStatus.value === 'loading' || moviesStatus.value === 'loading')
+const loading = computed(
+  () =>
+    showtimesStatus.value === 'loading' ||
+    moviesStatus.value === 'loading' ||
+    seatsOccupiedLoading.value,
+)
 
 const cinemaTitle = computed(() => {
   const stateValue = cinemaState.value
@@ -269,10 +380,28 @@ function formatCurrency(value?: number) {
   }).format(value)
 }
 
-async function handleRefresh() {
-  await refetchShowtimes()
-  if (movieIdsKey.value === 'empty') {
-    await refetchMovies()
+function availabilityTagLabel(availability: ShowtimeAvailabilityInfo | null) {
+  if (!availability) return 'Sin dato'
+  if (availability.available === null) return 'Sin dato'
+  if (availability.soldOut) return 'Agotada'
+  return `${availability.available} disp.`
+}
+
+function availabilityTagSeverity(availability: ShowtimeAvailabilityInfo | null) {
+  if (!availability) return 'secondary'
+  if (availability.soldOut) return 'danger'
+  return 'success'
+}
+
+function availabilityOccupancyLabel(availability: ShowtimeAvailabilityInfo | null) {
+  if (!availability) return null
+  if (typeof availability.total === 'number') {
+    return `${availability.occupied}/${availability.total} ocupados`
   }
+  return `Ocupados: ${availability.occupied}`
+}
+
+async function handleRefresh() {
+  await Promise.all([refetchShowtimes(), refetchSeatsOccupied(), refetchMovies()])
 }
 </script>

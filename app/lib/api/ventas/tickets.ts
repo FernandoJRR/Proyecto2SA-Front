@@ -37,10 +37,14 @@ export const markTicketAsUsed = async (
 }
 
 
+export interface QtySeatsOccupiedResponseDTO {
+  quantity: number;
+}
+
 export const getQuantitySeatsOccupied = async (
   cinemaFunctionId: string
-): Promise<number> => {
-  const response = await $api<number>(
+): Promise<QtySeatsOccupiedResponseDTO> => {
+  const response = await $api<QtySeatsOccupiedResponseDTO>(
     `${CURRENT_TICKETS_URI}/public/cinema-function/${cinemaFunctionId}/seats/occupied/qty`
   );
   return response;

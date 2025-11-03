@@ -52,7 +52,16 @@
         </div>
         <div class="flex items-center justify-between gap-2">
           <dt class="font-medium text-slate-700">Disponibles</dt>
-          <dd class="text-right text-slate-900">{{ ticketsAvailable }}</dd>
+          <dd
+            class="text-right"
+            :class="isSoldOut ? 'text-red-600 font-semibold' : 'text-slate-900'"
+          >
+            {{ availabilityLabel }}
+          </dd>
+        </div>
+        <div v-if="occupancyLabel" class="flex items-center justify-between gap-2">
+          <dt class="font-medium text-slate-700">Ocupados</dt>
+          <dd class="text-right text-slate-900">{{ occupancyLabel }}</dd>
         </div>
         <div class="flex items-center justify-between gap-2">
           <dt class="font-medium text-slate-700">Precio</dt>
@@ -70,6 +79,12 @@
         >
           {{ errorMessage }}
         </div>
+        <div
+          v-if="availabilityErrorMessage"
+          class="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700"
+        >
+          {{ availabilityErrorMessage }}
+        </div>
       </footer>
     </div>
   </article>
@@ -80,11 +95,13 @@ import { computed } from 'vue'
 import { useCustomQuery } from '~/composables/useCustomQuery'
 import { getMovieById, type MovieResponseDTO } from '~/lib/api/movies/movie'
 import type { ShowtimeResponseDTO } from '~/lib/api/cinema/showtime'
+import { getQuantitySeatsOccupied } from '~/lib/api/ventas/tickets'
 
 const props = defineProps<{
   showtime: ShowtimeResponseDTO
 }>()
 
+const showtimeId = computed(() => props.showtime?.id ?? '')
 const movieId = computed(() => props.showtime?.cinemaMovie?.movieId ?? '')
 
 const {
@@ -104,6 +121,27 @@ const movie = computed<MovieResponseDTO | null>(() => {
   return data ?? null
 })
 
+const {
+  state: seatsOccupiedState,
+  asyncStatus: seatsOccupiedStatus,
+} = useCustomQuery({
+  key: ['public-showtime-occupied', () => showtimeId.value],
+  query: async () => {
+    const id = showtimeId.value
+    if (!id) return null
+    try {
+      const { quantity } = await getQuantitySeatsOccupied(id)
+      return quantity
+    } catch (error: any) {
+      const message =
+        error?.data?.message ??
+        error?.message ??
+        'No se pudo obtener la disponibilidad actual.'
+      throw new Error(message)
+    }
+  },
+})
+
 const loading = computed(
   () => movieAsyncStatus?.value === 'loading' && !!movieId.value && !movie.value,
 )
@@ -111,6 +149,26 @@ const loading = computed(
 const errorMessage = computed(() => {
   const error = movieState.value?.error as { message?: string } | undefined
   return error?.message ?? null
+})
+
+const seatsOccupied = computed(() => {
+  const data = seatsOccupiedState.value?.data as number | null | undefined
+  if (typeof data !== 'number' || Number.isNaN(data)) return null
+  return Math.max(0, data)
+})
+
+const seatsOccupiedLoading = computed(
+  () => seatsOccupiedStatus?.value === 'loading' && !!showtimeId.value,
+)
+
+const availabilityErrorMessage = computed(() => {
+  const error = seatsOccupiedState.value?.error as { message?: string } | undefined
+  return (
+    error?.message ??
+    (showtimeId.value
+      ? 'No se pudo obtener la disponibilidad actualizada. Intenta nuevamente.'
+      : null)
+  )
 })
 
 const movieTitle = computed(() => movie.value?.title ?? 'Película no disponible')
@@ -124,11 +182,56 @@ const posterUrl = computed(() => movie.value?.urlImage ?? '')
 
 const schedule = computed(() => formatShowtimeSchedule(props.showtime))
 const hallName = computed(() => props.showtime?.hall?.name ?? 'No disponible')
-const ticketsAvailable = computed(() => {
-  const value = props.showtime?.ticketsAvailable
-  if (typeof value !== 'number' || Number.isNaN(value)) return 'N/D'
-  return value < 0 ? 'N/D' : `${value}`
+const hallCapacity = computed(() => {
+  const hall = props.showtime?.hall
+  if (
+    hall &&
+    typeof hall.rows === 'number' &&
+    typeof hall.columns === 'number'
+  ) {
+    const capacity = hall.rows * hall.columns
+    if (!Number.isNaN(capacity) && capacity >= 0) return capacity
+  }
+  return null
 })
+
+const totalSeats = computed(() => {
+  const base = props.showtime?.ticketsAvailable
+  if (typeof base === 'number' && !Number.isNaN(base) && base >= 0) {
+    return base
+  }
+  return hallCapacity.value
+})
+
+const seatsAvailable = computed(() => {
+  const total = totalSeats.value
+  if (typeof total !== 'number') return null
+  const occupied = seatsOccupied.value ?? 0
+  return Math.max(total - occupied, 0)
+})
+
+const availabilityLabel = computed(() => {
+  const available = seatsAvailable.value
+  if (available === null) {
+    return seatsOccupiedLoading.value ? 'Calculando…' : 'Sin dato'
+  }
+  if (available <= 0) return 'Agotada'
+  return `${available}`
+})
+
+const occupancyLabel = computed(() => {
+  const occupied = seatsOccupied.value
+  if (occupied === null) return null
+  const total = totalSeats.value
+  if (typeof total === 'number') return `${occupied}/${total}`
+  return `${occupied}`
+})
+
+const isSoldOut = computed(() => {
+  const available = seatsAvailable.value
+  return available !== null && available <= 0
+})
+
 const ticketPrice = computed(() => formatCurrency(props.showtime?.price))
 
 const lastUpdated = computed(() => formatDateTime(props.showtime?.endTime ?? props.showtime?.startTime))
