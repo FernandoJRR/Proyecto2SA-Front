@@ -136,90 +136,82 @@
             <p>Este cine no tiene funciones activas por ahora.</p>
           </div>
 
-          <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div v-else class="space-y-5">
             <div
               v-if="seatsOccupiedErrorMessage"
-              class="rounded-2xl border border-amber-200 bg-amber-50 shadow-sm p-4 text-sm text-amber-700 lg:col-span-2"
+              class="rounded-2xl border border-amber-200 bg-amber-50 shadow-sm p-4 text-sm text-amber-700"
             >
               {{ seatsOccupiedErrorMessage }} Intenta actualizar las funciones.
             </div>
-            <article
-              v-for="showtime in showtimes"
-              :key="showtime.id"
-              class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col"
+
+            <div
+              v-if="activeShowtime && activeShowtimeId"
+              class="rounded-2xl border border-slate-200 bg-white shadow overflow-hidden"
             >
-              <div class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
+              <div class="px-6 py-5 border-b border-slate-100 flex items-start justify-between gap-4">
                 <div>
-                  <h3 class="text-lg font-semibold">
-                    {{ movieById(showtime.cinemaMovie?.movieId)?.title ?? "Función sin título" }}
-                  </h3>
-                  <p class="text-xs text-slate-300">
-                    Sala {{ showtime.hall?.name ?? "N/D" }} · Capacidad {{ hallCapacity(showtime) }}
+                  <p class="text-sm font-medium text-primary-600 uppercase tracking-wide">
+                    Configurar boletos
                   </p>
-                  <p
-                    v-if="showtimeOccupancyLabel(showtime)"
-                    class="text-xs text-slate-300"
-                  >
-                    {{ showtimeOccupancyLabel(showtime) }}
+                  <h3 class="text-xl font-semibold text-slate-900">
+                    {{ activeShowtimeMovie?.title ?? "Función sin título" }}
+                  </h3>
+                  <p class="text-sm text-slate-600">
+                    Define cuántos boletos deseas para esta función.
                   </p>
                 </div>
                 <Tag
-                  :value="showtimeAvailabilityLabel(showtime)"
-                  :severity="isShowtimeSoldOut(showtime.id) ? 'danger' : 'info'"
+                  :value="activeShowtime ? showtimeAvailabilityLabel(activeShowtime) : 'Sin dato'"
+                  :severity="activeShowtime && isShowtimeSoldOut(activeShowtime.id) ? 'danger' : 'info'"
                   rounded
                 />
               </div>
-              <div class="p-5 space-y-4 text-sm text-slate-600 flex-1 flex flex-col">
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div class="px-6 py-6 space-y-5">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-slate-600">
                   <div>
-                    <p class="font-semibold text-slate-700 uppercase text-xs tracking-wide">
-                      Inicio
-                    </p>
-                    <p class="text-slate-900 font-medium">
-                      {{ formatDateTime(showtime.startTime) }}
-                    </p>
+                    <span class="block text-xs uppercase tracking-wide text-slate-500">Sala</span>
+                    <span class="font-semibold text-slate-900">
+                      {{ activeShowtime?.hall?.name ?? "N/D" }}
+                    </span>
+                    <span class="block text-xs text-slate-500">
+                      Capacidad {{ activeShowtime ? hallCapacity(activeShowtime) : "—" }}
+                    </span>
                   </div>
                   <div>
-                    <p class="font-semibold text-slate-700 uppercase text-xs tracking-wide">
-                      Fin
-                    </p>
-                    <p class="text-slate-900 font-medium">
-                      {{ formatDateTime(showtime.endTime) }}
-                    </p>
+                    <span class="block text-xs uppercase tracking-wide text-slate-500">Horario</span>
+                    <span class="font-semibold text-slate-900">
+                      {{ activeShowtime ? formatDateTime(activeShowtime.startTime) : "—" }}
+                    </span>
+                    <span class="block text-xs text-slate-500">
+                      Termina: {{ activeShowtime ? formatDateTime(activeShowtime.endTime) : "—" }}
+                    </span>
                   </div>
                   <div>
-                    <p class="font-semibold text-slate-700 uppercase text-xs tracking-wide">
-                      Precio
-                    </p>
-                    <p class="text-slate-900 font-medium">
-                      {{ formatCurrency(showtime.price) }}
-                    </p>
+                    <span class="block text-xs uppercase tracking-wide text-slate-500">Disponibles</span>
+                    <span
+                      class="font-semibold"
+                      :class="activeAvailability?.soldOut ? 'text-red-600' : 'text-slate-900'"
+                    >
+                      {{ activeShowtime ? showtimeAvailabilityLabel(activeShowtime) : "Sin dato" }}
+                    </span>
+                    <span
+                      v-if="activeShowtime && showtimeOccupancyLabel(activeShowtime)"
+                      class="block text-xs text-slate-500"
+                    >
+                      {{ showtimeOccupancyLabel(activeShowtime) }}
+                    </span>
                   </div>
                 </div>
-                <div class="text-xs text-slate-500 flex items-center justify-between">
-                  <span>Disponibles</span>
-                  <span
-                    :class="isShowtimeSoldOut(showtime.id) ? 'text-red-600 font-semibold' : 'text-slate-700 font-semibold'"
-                  >
-                    {{ showtimeAvailabilityLabel(showtime) }}
-                  </span>
-                </div>
-                <div
-                  v-if="showtimeOccupancyLabel(showtime)"
-                  class="text-xs text-slate-500 flex items-center justify-between"
-                >
-                  <span>Ocupados</span>
-                  <span>{{ showtimeOccupancyLabel(showtime) }}</span>
-                </div>
-                <div class="mt-auto">
-                  <label class="block text-sm font-medium text-slate-700 mb-2" :for="`qty-${showtime.id}`">
+
+                <div class="space-y-2">
+                  <label class="block text-sm font-medium text-slate-700" for="active-quantity">
                     Cantidad de boletos
                   </label>
                   <InputNumber
-                    :inputId="`qty-${showtime.id}`"
-                    v-model="ticketQuantities[showtime.id]"
+                    id="active-quantity"
+                    v-model="activeQuantity"
                     :min="0"
-                    :max="maxTicketsForShowtime(showtime.id)"
+                    :max="activeMaxTickets"
                     :step="1"
                     :minFractionDigits="0"
                     :maxFractionDigits="0"
@@ -227,18 +219,138 @@
                     buttonLayout="horizontal"
                     incrementButtonIcon="pi pi-plus"
                     decrementButtonIcon="pi pi-minus"
-                    class="w-full"
-                    :disabled="submitting || isShowtimeSoldOut(showtime.id)"
+                    class="w-full sm:w-56"
+                    :disabled="submitting || activeAvailability?.soldOut"
                   />
                   <p
-                    v-if="isShowtimeSoldOut(showtime.id)"
-                    class="mt-2 text-xs font-semibold text-red-600"
+                    v-if="activeAvailability?.soldOut"
+                    class="text-xs font-semibold text-red-600"
                   >
                     Función agotada. No hay boletos disponibles.
                   </p>
                 </div>
+
+                <div class="flex items-center justify-end gap-3">
+                  <Button
+                    type="button"
+                    label="Cancelar"
+                    severity="secondary"
+                    outlined
+                    :disabled="submitting"
+                    @click="cancelSelection"
+                  />
+                  <Button
+                    type="button"
+                    icon="pi pi-check"
+                    label="Guardar cantidad"
+                    :disabled="submitting || activeAvailability?.soldOut"
+                    @click="confirmQuantity"
+                  />
+                </div>
               </div>
-            </article>
+            </div>
+
+            <div
+              v-else
+              class="rounded-2xl border border-slate-200 bg-white shadow overflow-hidden"
+            >
+              <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                  <h3 class="text-lg font-semibold text-slate-900">Selecciona una función</h3>
+                  <p class="text-sm text-slate-600">
+                    Elige una función para definir la cantidad de boletos.
+                  </p>
+                </div>
+                <span class="text-sm text-slate-500">
+                  {{ showtimes.length }} {{ showtimes.length === 1 ? "función" : "funciones" }} disponibles
+                </span>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-200">
+                  <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                    <tr>
+                      <th scope="col" class="px-6 py-3 text-left">Película</th>
+                      <th scope="col" class="px-6 py-3 text-left">Sala</th>
+                      <th scope="col" class="px-6 py-3 text-left">Horario</th>
+                      <th scope="col" class="px-6 py-3 text-left">Disponibles</th>
+                      <th scope="col" class="px-6 py-3 text-left">Precio</th>
+                      <th scope="col" class="px-6 py-3 text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100 bg-white text-sm">
+                    <tr
+                      v-for="showtime in showtimes"
+                      :key="showtime.id"
+                      :class="isShowtimeSoldOut(showtime.id) ? 'bg-slate-50 text-slate-500' : ''"
+                    >
+                      <td class="px-6 py-4 align-top">
+                        <div class="font-semibold text-slate-900">
+                          {{ movieById(showtime.cinemaMovie?.movieId)?.title ?? "Función sin título" }}
+                        </div>
+                        <div class="text-xs text-slate-500">
+                          Función {{ showtime.id }}
+                        </div>
+                        <div
+                          v-if="movieById(showtime.cinemaMovie?.movieId)?.classification?.name"
+                          class="mt-1 inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600"
+                        >
+                          {{ movieById(showtime.cinemaMovie?.movieId)?.classification?.name }}
+                        </div>
+                      </td>
+                      <td class="px-6 py-4 align-top">
+                        <div class="font-medium text-slate-900">
+                          {{ showtime.hall?.name ?? "N/D" }}
+                        </div>
+                        <div class="text-xs text-slate-500">
+                          Capacidad {{ hallCapacity(showtime) }}
+                        </div>
+                      </td>
+                      <td class="px-6 py-4 align-top">
+                        <div class="font-medium text-slate-900">
+                          {{ formatDateTime(showtime.startTime) }}
+                        </div>
+                        <div class="text-xs text-slate-500">
+                          Termina: {{ formatDateTime(showtime.endTime) }}
+                        </div>
+                      </td>
+                      <td class="px-6 py-4 align-top">
+                        <Tag
+                          :value="showtimeAvailabilityLabel(showtime)"
+                          :severity="isShowtimeSoldOut(showtime.id) ? 'danger' : 'info'"
+                          rounded
+                        />
+                        <div
+                          v-if="showtimeOccupancyLabel(showtime)"
+                          class="mt-1 text-xs text-slate-500"
+                        >
+                          {{ showtimeOccupancyLabel(showtime) }}
+                        </div>
+                      </td>
+                      <td class="px-6 py-4 align-top">
+                        <div class="font-medium text-slate-900">
+                          {{ formatCurrency(showtime.price) }}
+                        </div>
+                      </td>
+                      <td class="px-6 py-4 align-top text-right">
+                        <Button
+                          size="small"
+                          icon="pi pi-ticket"
+                          label="Seleccionar"
+                          :disabled="isShowtimeSoldOut(showtime.id)"
+                          @click="selectShowtime(showtime.id)"
+                        />
+                        <p
+                          v-if="ticketQuantities[showtime.id] > 0"
+                          class="mt-2 text-xs text-slate-500"
+                        >
+                          Seleccionados: {{ ticketQuantities[showtime.id] }}
+                        </p>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
           <small v-if="errors.tickets" class="block text-red-600">
@@ -466,54 +578,6 @@ const seatsOccupiedErrorMessage = computed(() => {
   );
 });
 
-const ticketQuantities = reactive<Record<string, number>>({});
-
-watch(showtimes, (items) => {
-  const current = new Set(Object.keys(ticketQuantities));
-  for (const showtime of items) {
-    if (typeof ticketQuantities[showtime.id] !== "number") {
-      ticketQuantities[showtime.id] = 0;
-    }
-    current.delete(showtime.id);
-  }
-  for (const key of current) {
-    delete ticketQuantities[key];
-  }
-}, { immediate: true });
-
-watch(selectedCinemaId, (value) => {
-  for (const key of Object.keys(ticketQuantities)) {
-    delete ticketQuantities[key];
-  }
-  if (value) {
-    nextTick(() => {
-      refreshShowtimesAndAvailability();
-    });
-  }
-});
-
-watch(
-  () => Array.from(showtimesAvailability.value.entries()),
-  (entries) => {
-    for (const [showtimeId, info] of entries) {
-      if (!(showtimeId in ticketQuantities)) continue;
-      const current = Number(ticketQuantities[showtimeId] ?? 0);
-      if (!Number.isFinite(current) || current <= 0) continue;
-      if (info.soldOut) {
-        ticketQuantities[showtimeId] = 0;
-        continue;
-      }
-      if (
-        typeof info.available === "number" &&
-        current > info.available
-      ) {
-        ticketQuantities[showtimeId] = info.available;
-      }
-    }
-  },
-  { immediate: true }
-);
-
 const movieIds = computed(() => {
   const ids = new Set<string>();
   for (const showtime of showtimes.value) {
@@ -530,6 +594,7 @@ const movieIdsKey = computed(() => {
 
 const {
   state: moviesState,
+  refetch: refetchMovies,
 } = useCustomQuery({
   key: ["tickets-movies", () => movieIdsKey.value],
   query: async () => {
@@ -597,6 +662,145 @@ const showtimesAvailability = computed(() => {
   }
   return map;
 });
+
+const activeShowtimeId = ref<string | null>(null);
+const activeQuantity = ref<number>(0);
+
+const activeShowtime = computed(() => {
+  const id = activeShowtimeId.value;
+  if (!id) return null;
+  return showtimesMap.value.get(id) ?? null;
+});
+
+const activeShowtimeMovie = computed(() => {
+  const showtime = activeShowtime.value;
+  const movieId = showtime?.cinemaMovie?.movieId;
+  if (!movieId) return null;
+  return moviesById.value.get(movieId) ?? null;
+});
+
+const activeAvailability = computed(() => {
+  const id = activeShowtimeId.value;
+  if (!id) return null;
+  return availabilityForShowtime(id);
+});
+
+const activeMaxTickets = computed(() => {
+  const id = activeShowtimeId.value;
+  if (!id) return undefined;
+  return maxTicketsForShowtime(id);
+});
+
+const ticketQuantities = reactive<Record<string, number>>({});
+
+watch(showtimes, (items) => {
+  const current = new Set(Object.keys(ticketQuantities));
+  for (const showtime of items) {
+    if (typeof ticketQuantities[showtime.id] !== "number") {
+      ticketQuantities[showtime.id] = 0;
+    }
+    current.delete(showtime.id);
+  }
+  for (const key of current) {
+    delete ticketQuantities[key];
+  }
+  if (
+    activeShowtimeId.value &&
+    !items.some((showtime) => showtime.id === activeShowtimeId.value)
+  ) {
+    cancelSelection();
+  }
+}, { immediate: true });
+
+watch(
+  showtimeIdsKey,
+  (value, previous) => {
+    if (value === previous) return;
+    if (value === "empty") return;
+    refetchSeatsOccupied();
+  },
+  { immediate: false }
+);
+
+watch(
+  selectedCinemaId,
+  (value) => {
+    activeShowtimeId.value = null;
+    activeQuantity.value = 0;
+    for (const key of Object.keys(ticketQuantities)) {
+      delete ticketQuantities[key];
+    }
+    if (value) {
+      nextTick(() => {
+        refreshShowtimesAndAvailability();
+        if (movieIdsKey.value !== "empty") {
+          refetchMovies();
+        }
+      });
+    }
+  },
+  { immediate: true }
+);
+
+watch(
+  movieIdsKey,
+  (value, previous) => {
+    if (value === previous) return;
+    if (value === "empty") return;
+    refetchMovies();
+  },
+  { immediate: false }
+);
+
+watch(activeShowtimeId, (id) => {
+  if (!id) {
+    activeQuantity.value = 0;
+    return;
+  }
+  const current = Number(ticketQuantities[id] ?? 0);
+  activeQuantity.value =
+    Number.isFinite(current) && current >= 0 ? current : 0;
+});
+
+watch(
+  activeAvailability,
+  (info) => {
+    if (!info) return;
+    if (info.soldOut) {
+      activeQuantity.value = 0;
+      return;
+    }
+    if (
+      typeof info.available === "number" &&
+      activeQuantity.value > info.available
+    ) {
+      activeQuantity.value = info.available;
+    }
+  },
+  { immediate: false }
+);
+
+watch(
+  () => Array.from(showtimesAvailability.value.entries()),
+  (entries) => {
+    for (const [showtimeId, info] of entries) {
+      if (!(showtimeId in ticketQuantities)) continue;
+      const current = Number(ticketQuantities[showtimeId] ?? 0);
+      if (!Number.isFinite(current) || current <= 0) continue;
+      if (info.soldOut) {
+        ticketQuantities[showtimeId] = 0;
+        continue;
+      }
+      if (
+        typeof info.available === "number" &&
+        current > info.available
+      ) {
+        ticketQuantities[showtimeId] = info.available;
+      }
+    }
+  },
+  { immediate: true }
+);
 
 const errors = reactive({
   cinema: null as string | null,
@@ -731,6 +935,49 @@ function maxTicketsForShowtime(showtimeId: string) {
   return undefined;
 }
 
+function selectShowtime(showtimeId: string) {
+  if (!showtimesMap.value.has(showtimeId)) return;
+  if (isShowtimeSoldOut(showtimeId)) return;
+  activeShowtimeId.value = showtimeId;
+}
+
+function cancelSelection() {
+  activeShowtimeId.value = null;
+  activeQuantity.value = 0;
+}
+
+function confirmQuantity() {
+  const showtimeId = activeShowtimeId.value;
+  if (!showtimeId) return;
+  const availability = availabilityForShowtime(showtimeId);
+  if (availability?.soldOut) {
+    delete ticketQuantities[showtimeId];
+    activeShowtimeId.value = null;
+    activeQuantity.value = 0;
+    toast.error("Esta función ya no tiene boletos disponibles.");
+    return;
+  }
+  let quantity = Number(activeQuantity.value);
+  if (!Number.isFinite(quantity) || quantity < 0) {
+    quantity = 0;
+  }
+  const max = maxTicketsForShowtime(showtimeId);
+  if (typeof max === "number" && quantity > max) {
+    quantity = max;
+    activeQuantity.value = max;
+    toast.warning("Se ajustó la cantidad al máximo disponible.");
+  }
+
+  if (quantity <= 0) {
+    delete ticketQuantities[showtimeId];
+  } else {
+    ticketQuantities[showtimeId] = quantity;
+  }
+
+  activeShowtimeId.value = null;
+  activeQuantity.value = 0;
+}
+
 function movieById(id?: string | null) {
   if (!id) return null;
   return moviesById.value.get(id) ?? null;
@@ -763,6 +1010,8 @@ async function refreshShowtimesAndAvailability() {
 }
 
 function resetSelection() {
+  activeShowtimeId.value = null;
+  activeQuantity.value = 0;
   for (const key of Object.keys(ticketQuantities)) {
     ticketQuantities[key] = 0;
   }
