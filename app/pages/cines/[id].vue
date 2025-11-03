@@ -1,6 +1,6 @@
 <template>
-  <div class="min-h-screen px-4 sm:px-6 lg:px-8 py-10 bg-slate-50">
-    <header class="max-w-6xl mx-auto mb-8" role="banner">
+  <PublicCinemaTemplate>
+    <template #header>
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <NuxtLink
           to="/cines"
@@ -16,12 +16,44 @@
           </p>
         </div>
       </div>
-    </header>
+    </template>
 
-    <main class="max-w-6xl mx-auto space-y-10" role="main">
-      <section
-        class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden"
-      >
+    <template v-if="showTopAds || adsLoading" #top-ads>
+      <div v-if="showTopAds" class="space-y-4">
+        <div
+          v-if="textBannerAd"
+          class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden"
+        >
+          <AdRenderer :ad="textBannerAd" />
+        </div>
+
+        <div
+          v-if="horizontalAd"
+          class="rounded-2xl border border-slate-200 bg-white shadow-lg overflow-hidden"
+        >
+          <AdRenderer :ad="horizontalAd" />
+        </div>
+      </div>
+      <div
+        v-else
+        class="h-32 rounded-2xl border border-dashed border-slate-300 bg-white/60 animate-pulse"
+      ></div>
+    </template>
+
+    <template v-if="showVerticalAd" #left-ads>
+      <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <AdRenderer :ad="verticalAd" />
+      </div>
+    </template>
+
+    <template v-if="showVerticalAd" #right-ads>
+      <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <AdRenderer :ad="verticalAd" />
+      </div>
+    </template>
+
+    <template #default>
+      <section class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
         <div class="bg-slate-900 text-white px-6 py-8 sm:px-8">
           <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">
             <span v-if="cinema">{{ cinema.name }}</span>
@@ -69,10 +101,6 @@
               <span class="font-medium text-slate-600">Registrado desde</span>
               <span class="font-semibold text-slate-900">{{ formatDate(cinema.createdAt) }}</span>
             </div>
-            <div class="flex items-center justify-between">
-              <span class="font-medium text-slate-600">Costo por día</span>
-              <span class="font-semibold text-slate-900">{{ formatCurrency(cinema.costPerDay) }}</span>
-            </div>
           </div>
 
           <div class="space-y-4">
@@ -87,6 +115,18 @@
               <span class="font-medium text-slate-600">Teléfono</span>
               <span class="font-semibold text-slate-900">{{ cinema.company.phoneNumber }}</span>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section v-if="showVerticalAd" class="xl:hidden">
+        <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div
+            v-for="position in 2"
+            :key="`vertical-mobile-${position}`"
+            class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden"
+          >
+            <AdRenderer :ad="verticalAd" />
           </div>
         </div>
       </section>
@@ -168,15 +208,22 @@
           </article>
         </div>
       </section>
-    </main>
-  </div>
+    </template>
+  </PublicCinemaTemplate>
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import AdRenderer from '~/components/AdRenderer.vue'
+import PublicCinemaTemplate from '~/components/PublicCinemaTemplate.vue'
 import { getCinemaById, type CinemaResponseDTO } from '~/lib/api/cinema/cinema'
 import { searchSnacksByCinema, type SnackView } from '~/lib/api/ventas/snacks'
+import {
+  AddType,
+  getAnuncioAleatorioByCinemaAndType,
+  type AnuncioViewResponseDTO,
+} from '~/lib/api/anuncios/anuncio'
 import { useCustomQuery } from '~/composables/useCustomQuery'
 
 const route = useRoute()
@@ -235,6 +282,59 @@ const snacksErrorMessage = computed(() => {
   return error?.message ?? 'No se pudo cargar el catálogo de snacks.'
 })
 const totalSnacks = computed(() => snacksState.value?.data?.totalElements ?? snacks.value.length ?? 0)
+
+const adsLoading = ref(false)
+const textBannerAd = ref<AnuncioViewResponseDTO | null>(null)
+const horizontalAd = ref<AnuncioViewResponseDTO | null>(null)
+const verticalAd = ref<AnuncioViewResponseDTO | null>(null)
+
+const showTopAds = computed(() => !!textBannerAd.value || !!horizontalAd.value)
+const showVerticalAd = computed(() => verticalAd.value !== null)
+async function loadAds(id: string) {
+  if (!id) {
+    textBannerAd.value = null
+    horizontalAd.value = null
+    verticalAd.value = null
+    return
+  }
+
+  adsLoading.value = true
+  try {
+    const [textBanner, horizontal, vertical] = await Promise.all([
+      getAnuncioAleatorioByCinemaAndType(id, AddType.TEXT_BANNER),
+      getAnuncioAleatorioByCinemaAndType(id, AddType.MEDIA_HORIZONTAL),
+      getAnuncioAleatorioByCinemaAndType(id, AddType.MEDIA_VERTICAL),
+    ])
+
+    textBannerAd.value = textBanner ?? null
+    horizontalAd.value = horizontal ?? null
+    verticalAd.value = vertical ?? null
+  } catch (error) {
+    console.error('Error al cargar anuncios', error)
+    textBannerAd.value = null
+    horizontalAd.value = null
+    verticalAd.value = null
+  } finally {
+    adsLoading.value = false
+  }
+}
+
+watch(
+  () => cinemaId.value,
+  (id) => {
+    if (!id) {
+      textBannerAd.value = null
+      horizontalAd.value = null
+      verticalAd.value = null
+      return
+    }
+
+    loadAds(id).catch((error) => {
+      console.error('Error inesperado al cargar anuncios', error)
+    })
+  },
+  { immediate: true }
+)
 
 function formatCurrency(value?: number | null) {
   if (typeof value !== 'number' || Number.isNaN(value)) return '—'
