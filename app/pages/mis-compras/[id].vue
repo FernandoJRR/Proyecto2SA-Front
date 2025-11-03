@@ -396,7 +396,7 @@ const movieIds = computed(() => {
     const functionId = ticket.ticketView?.cinemaFunctionId;
     if (!functionId) continue;
     const showtime = showtimeById.value.get(functionId);
-    const movieId = showtime?.cinemaMovie?.movieId;
+    const movieId = showtime?.cinemaMovie?.movieId ?? ticket.ticketView?.movieId;
     if (movieId) ids.add(movieId);
   }
   return Array.from(ids);
@@ -435,7 +435,7 @@ const ticketsWithDetails = computed<TicketWithDetails[]>(() => {
   return tickets.map((ticket) => {
     const functionId = ticket.ticketView?.cinemaFunctionId ?? "";
     const showtime = functionId ? showtimeById.value.get(functionId) ?? null : null;
-    const movieId = showtime?.cinemaMovie?.movieId ?? "";
+    const movieId = showtime?.cinemaMovie?.movieId ?? ticket.ticketView?.movieId ?? "";
     const movie = movieId ? moviesById.value.get(movieId) ?? null : null;
     return { ...ticket, showtime, movie };
   });
