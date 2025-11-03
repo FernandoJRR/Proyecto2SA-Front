@@ -124,7 +124,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import Button from 'primevue/button'
 import DataTable from 'primevue/datatable'
@@ -194,6 +194,16 @@ const {
   },
 })
 
+watch(
+  movieIdsKey,
+  (value, previous) => {
+    if (value === previous) return
+    if (value === 'empty') return
+    refetchMovies()
+  },
+  { immediate: false }
+)
+
 const moviesById = computed(() => {
   const data = moviesState.value.data as MovieResponseDTO[] | undefined
   const map = new Map<string, MovieResponseDTO>()
@@ -243,6 +253,9 @@ function formatDateTime(value?: string) {
 }
 
 async function handleRefresh() {
-  await Promise.all([refetchShowtimes(), refetchMovies()])
+  await refetchShowtimes()
+  if (movieIdsKey.value === 'empty') {
+    await refetchMovies()
+  }
 }
 </script>
