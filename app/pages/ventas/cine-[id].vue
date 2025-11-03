@@ -209,6 +209,9 @@
                     <p class="text-xs text-slate-500">
                       Boletos disponibles: {{ showtime.ticketsAvailable ?? "Sin dato" }}
                     </p>
+                    <p class="text-xs text-slate-500">
+                      Precio: {{ formatCurrency(showtime.price) }}
+                    </p>
                   </div>
                   <div class="md:w-40">
                     <label
@@ -339,6 +342,12 @@
                       <div class="text-xs text-slate-500">
                         Sala {{ detail.hallName }} · Boletos: {{ detail.quantity }}
                       </div>
+                      <div class="text-xs text-slate-500">
+                        {{ detail.quantity }} × {{ formatCurrency(detail.price) }}
+                      </div>
+                    </div>
+                    <div class="font-semibold text-slate-900">
+                      {{ formatCurrency(detail.lineTotal) }}
                     </div>
                   </div>
                 </div>
@@ -356,9 +365,15 @@
                 </span>
               </div>
               <div class="flex items-center justify-between">
-                <span>Total boletos</span>
+                <span>Total boletos (cantidad)</span>
                 <span class="font-semibold text-slate-900">
                   {{ totalTickets }}
+                </span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span>Total boletos (monto)</span>
+                <span class="font-semibold text-slate-900">
+                  {{ formatCurrency(ticketsTotalAmount) }}
                 </span>
               </div>
               <div class="flex items-center justify-between text-base font-semibold text-slate-900">
@@ -636,6 +651,10 @@ const selectedTicketDetails = computed(() =>
     const showtime = showtimesMap.value.get(item.showtimeId);
     const movieId = showtime?.cinemaMovie?.movieId ?? "";
     const movie = movieId ? moviesById.value.get(movieId) ?? null : null;
+    const price =
+      typeof showtime?.price === "number" && !Number.isNaN(showtime.price)
+        ? showtime.price
+        : 0;
     return {
       showtimeId: item.showtimeId,
       quantity: item.quantity,
@@ -644,6 +663,8 @@ const selectedTicketDetails = computed(() =>
       schedule: showtime
         ? formatShowtimeSchedule(showtime)
         : "Horario no disponible",
+      price,
+      lineTotal: price * item.quantity,
     };
   })
 );
@@ -664,7 +685,13 @@ const snacksTotal = computed(() =>
   selectedSnackDetails.value.reduce((total, item) => total + item.lineTotal, 0)
 );
 
-const grandTotal = computed(() => snacksTotal.value);
+const ticketsTotalAmount = computed(() =>
+  selectedTicketDetails.value.reduce((total, item) => total + item.lineTotal, 0)
+);
+
+const grandTotal = computed(
+  () => snacksTotal.value + ticketsTotalAmount.value
+);
 
 const submitDisabled = computed(() => {
   if (submitting.value) return true;

@@ -18,7 +18,7 @@
             text
             :loading="showtimesLoading"
             :disabled="!selectedCinemaId || showtimesLoading"
-            @click="refetchShowtimes"
+            @click="() => refetchShowtimes()"
           />
         </div>
       </div>
@@ -116,7 +116,7 @@
               label="Intentar nuevamente"
               severity="danger"
               outlined
-              @click="refetchShowtimes"
+              @click="() => refetchShowtimes()"
             />
           </div>
 
@@ -158,7 +158,7 @@
                 />
               </div>
               <div class="p-5 space-y-4 text-sm text-slate-600 flex-1 flex flex-col">
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <p class="font-semibold text-slate-700 uppercase text-xs tracking-wide">
                       Inicio
@@ -173,6 +173,14 @@
                     </p>
                     <p class="text-slate-900 font-medium">
                       {{ formatDateTime(showtime.endTime) }}
+                    </p>
+                  </div>
+                  <div>
+                    <p class="font-semibold text-slate-700 uppercase text-xs tracking-wide">
+                      Precio
+                    </p>
+                    <p class="text-slate-900 font-medium">
+                      {{ formatCurrency(showtime.price) }}
                     </p>
                   </div>
                 </div>
@@ -213,8 +221,15 @@
                 Verifica la información antes de confirmar tus boletos.
               </p>
             </div>
-            <div class="text-sm text-slate-600">
-              Total de boletos: <span class="font-semibold text-slate-900">{{ totalTickets }}</span>
+            <div class="text-sm text-slate-600 text-right space-y-1">
+              <div>
+                Total de boletos:
+                <span class="font-semibold text-slate-900">{{ totalTickets }}</span>
+              </div>
+              <div>
+                Total estimado:
+                <span class="font-semibold text-slate-900">{{ formatCurrency(ticketsTotalAmount) }}</span>
+              </div>
             </div>
           </header>
 
@@ -231,13 +246,18 @@
                 <p class="text-xs text-slate-500">
                   Función {{ detail.showtimeId }} · Sala {{ detail.hallName }} · {{ detail.schedule }}
                 </p>
+                <p class="text-xs text-slate-500">
+                  Precio: {{ formatCurrency(detail.price) }} · Subtotal: {{ formatCurrency(detail.lineTotal) }}
+                </p>
               </div>
-              <div class="flex items-center gap-4">
-                <div class="text-xs text-slate-500">
-                  Boletos seleccionados
-                </div>
+              <div class="flex flex-col items-start sm:items-end text-right gap-1">
+                <div class="text-xs text-slate-500">Boletos seleccionados</div>
                 <div class="text-lg font-semibold text-slate-900">
                   {{ detail.quantity }}
+                </div>
+                <div class="text-xs text-slate-500">Subtotal</div>
+                <div class="text-lg font-semibold text-slate-900">
+                  {{ formatCurrency(detail.lineTotal) }}
                 </div>
               </div>
             </div>
@@ -445,18 +465,31 @@ const selectedTicketDetails = computed(() =>
     const movie = movieId ? moviesById.value.get(movieId) : null;
     const start = showtime?.startTime ? formatDateTime(showtime.startTime) : "—";
     const end = showtime?.endTime ? formatDateTime(showtime.endTime) : "—";
+    const price =
+      typeof showtime?.price === "number" && !Number.isNaN(showtime.price)
+        ? showtime.price
+        : 0;
     return {
       showtimeId: item.showtimeId,
       quantity: item.quantity,
       movieTitle: movie?.title ?? "Función sin título",
       hallName: showtime?.hall?.name ?? "N/D",
       schedule: `${start} - ${end}`,
+      price,
+      lineTotal: price * item.quantity,
     };
   })
 );
 
 const totalTickets = computed(() =>
   selectedTickets.value.reduce((total, item) => total + item.quantity, 0)
+);
+
+const ticketsTotalAmount = computed(() =>
+  selectedTicketDetails.value.reduce(
+    (total, detail) => total + detail.lineTotal,
+    0
+  )
 );
 
 const submitting = ref(false);
@@ -500,6 +533,15 @@ function formatDateTime(value?: string) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function formatCurrency(value?: number | null) {
+  if (typeof value !== "number" || Number.isNaN(value)) return "Q0.00";
+  return new Intl.NumberFormat("es-GT", {
+    style: "currency",
+    currency: "GTQ",
+    minimumFractionDigits: 2,
+  }).format(value);
 }
 
 function resetSelection() {

@@ -10,6 +10,7 @@ export interface ShowtimeResponseDTO {
   startTime: string;
   endTime: string;
   ticketsAvailable: number;
+  price: number;
 }
 
 export interface CreateShowtimeRequest {
@@ -18,6 +19,7 @@ export interface CreateShowtimeRequest {
   // Use ISO 8601 date-time strings, e.g. "2025-10-30T14:00:00"
   startTime: string;
   endTime: string;
+  price: number;
 }
 
 export const getAllShowtimes = async (): Promise<ShowtimeResponseDTO[]> => {
@@ -61,9 +63,10 @@ export interface UpdateShowtimeRequest {
   // Use ISO 8601 date-time strings, e.g. "2025-10-30T14:00:00"
   startTime: string;
   endTime: string;
+  price: number;
 }
 
-// Update showtime by id (PATCH). Backend expected: { startTime, endTime }
+// Update showtime by id (PATCH). Backend expected: { startTime, endTime, price }
 export const updateShowtime = async (
   showtimeId: string,
   data: UpdateShowtimeRequest

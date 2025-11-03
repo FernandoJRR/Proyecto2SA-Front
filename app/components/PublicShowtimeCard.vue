@@ -54,6 +54,10 @@
           <dt class="font-medium text-slate-700">Disponibles</dt>
           <dd class="text-right text-slate-900">{{ ticketsAvailable }}</dd>
         </div>
+        <div class="flex items-center justify-between gap-2">
+          <dt class="font-medium text-slate-700">Precio</dt>
+          <dd class="text-right text-slate-900">{{ ticketPrice }}</dd>
+        </div>
       </dl>
 
       <footer class="mt-auto">
@@ -125,6 +129,7 @@ const ticketsAvailable = computed(() => {
   if (typeof value !== 'number' || Number.isNaN(value)) return 'N/D'
   return value < 0 ? 'N/D' : `${value}`
 })
+const ticketPrice = computed(() => formatCurrency(props.showtime?.price))
 
 const lastUpdated = computed(() => formatDateTime(props.showtime?.endTime ?? props.showtime?.startTime))
 
@@ -149,5 +154,14 @@ function formatShowtimeSchedule(showtime?: ShowtimeResponseDTO | null) {
   if (start === '—') return end
   if (end === '—') return start
   return `${start} – ${end}`
+}
+
+function formatCurrency(value?: number | null) {
+  if (typeof value !== 'number' || Number.isNaN(value) || value < 0) return 'Q0.00'
+  return new Intl.NumberFormat('es-GT', {
+    style: 'currency',
+    currency: 'GTQ',
+    minimumFractionDigits: 2,
+  }).format(value)
 }
 </script>

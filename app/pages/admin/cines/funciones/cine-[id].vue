@@ -108,6 +108,14 @@
             </template>
           </Column>
 
+          <Column header="Precio">
+            <template #body="{ data }">
+              <span class="font-semibold text-slate-900">
+                {{ formatCurrency(data.price) }}
+              </span>
+            </template>
+          </Column>
+
           <Column header="Tickets disponibles">
             <template #body="{ data }">
               <Tag
@@ -250,6 +258,15 @@ function formatDateTime(value?: string) {
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+function formatCurrency(value?: number) {
+  if (typeof value !== 'number' || Number.isNaN(value)) return 'Q0.00'
+  return new Intl.NumberFormat('es-GT', {
+    style: 'currency',
+    currency: 'GTQ',
+    minimumFractionDigits: 2,
+  }).format(value)
 }
 
 async function handleRefresh() {

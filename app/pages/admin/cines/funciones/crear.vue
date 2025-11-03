@@ -141,6 +141,28 @@
                 </p>
               </div>
             </div>
+
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1" for="price">
+                Precio (GTQ) *
+              </label>
+              <InputNumber
+                id="price"
+                v-model="price"
+                class="w-full"
+                mode="currency"
+                currency="GTQ"
+                :min="0"
+                :minFractionDigits="2"
+                :maxFractionDigits="2"
+              />
+              <p v-if="errors.price" class="mt-1 text-sm text-red-600">
+                {{ errors.price }}
+              </p>
+              <p class="mt-1 text-xs text-slate-500">
+                Ingresa el precio final del boleto para esta función.
+              </p>
+            </div>
           </div>
 
           <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 space-y-1">
@@ -155,6 +177,10 @@
             <p>
               <span class="font-semibold text-slate-800">Horario:</span>
               {{ formattedSummary }}
+            </p>
+            <p>
+              <span class="font-semibold text-slate-800">Precio del boleto:</span>
+              {{ formattedPrice }}
             </p>
           </div>
 
@@ -183,6 +209,7 @@ import Button from 'primevue/button'
 import Dropdown from 'primevue/dropdown'
 import Calendar from 'primevue/calendar'
 import InputText from 'primevue/inputtext'
+import InputNumber from 'primevue/inputnumber'
 import { toast } from 'vue-sonner'
 import { getCinemaById, type CinemaResponseDTO } from '~/lib/api/cinema/cinema'
 import {
@@ -351,12 +378,14 @@ const selectedCinemaMovie = ref<CinemaMovieOption | null>(null)
 const selectedHall = ref<CinemaHallResponseDTO | null>(null)
 const startTime = ref<Date | null>(null)
 const minDate = ref(new Date())
+const price = ref<number | null>(null)
 
 const errors = reactive({
   cinemaMovie: null as string | null,
   hall: null as string | null,
   startTime: null as string | null,
   endTime: null as string | null,
+  price: null as string | null,
 })
 
 const submitting = ref(false)
@@ -367,6 +396,12 @@ const summaryFormatter = new Intl.DateTimeFormat('es-GT', {
   day: '2-digit',
   hour: '2-digit',
   minute: '2-digit',
+})
+
+const currencyFormatter = new Intl.NumberFormat('es-GT', {
+  style: 'currency',
+  currency: 'GTQ',
+  minimumFractionDigits: 2,
 })
 
 const movieDurationMinutes = computed(() => {
@@ -392,6 +427,12 @@ const formattedSummary = computed(() => {
   return `${start} – ${end}`
 })
 
+const formattedPrice = computed(() => {
+  const value = price.value
+  if (typeof value !== 'number' || Number.isNaN(value)) return '—'
+  return currencyFormatter.format(value)
+})
+
 function validate() {
   errors.cinemaMovie = selectedCinemaMovie.value ? null : 'Selecciona una película.'
   errors.hall = selectedHall.value ? null : 'Selecciona una sala.'
@@ -403,8 +444,14 @@ function validate() {
   } else {
     errors.endTime = null
   }
+  const priceValue = price.value
+  if (typeof priceValue !== 'number' || Number.isNaN(priceValue) || priceValue <= 0) {
+    errors.price = 'Ingresa un precio válido.'
+  } else {
+    errors.price = null
+  }
 
-  return !errors.cinemaMovie && !errors.hall && !errors.startTime && !errors.endTime
+  return !errors.cinemaMovie && !errors.hall && !errors.startTime && !errors.endTime && !errors.price
 }
 
 function toIsoString(date: Date) {
@@ -425,6 +472,12 @@ async function onSubmit() {
     return
   }
 
+  const priceValue = price.value
+  if (typeof priceValue !== 'number' || Number.isNaN(priceValue) || priceValue <= 0) {
+    toast.error('Ingresa un precio válido.')
+    return
+  }
+
   submitting.value = true
 
   try {
@@ -433,6 +486,7 @@ async function onSubmit() {
       hallId: selectedHall.value.id,
       startTime: toIsoString(startTime.value),
       endTime: toIsoString(computedEndTime.value),
+      price: priceValue,
     })
 
     toast.success('Función creada correctamente.')
