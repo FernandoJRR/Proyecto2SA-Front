@@ -151,6 +151,109 @@
             </p>
           </section>
 
+          <section class="rounded-2xl border border-slate-200 bg-white shadow">
+            <div class="p-6 sm:p-8 border-b border-slate-100 flex items-center justify-between gap-3">
+              <div>
+                <h2 class="text-lg font-semibold text-slate-900">
+                  Funciones disponibles
+                </h2>
+                <p class="text-sm text-slate-600">
+                  Selecciona la cantidad de boletos por función para agregarlos a la venta.
+                </p>
+              </div>
+              <Button
+                icon="pi pi-refresh"
+                severity="secondary"
+                text
+                rounded
+                :loading="showtimesLoading"
+                @click="() => refetchShowtimes()"
+                type="button"
+                aria-label="Actualizar funciones"
+              />
+            </div>
+            <div class="p-0 sm:p-0">
+              <div v-if="showtimesLoading" class="py-16 text-center text-slate-600">
+                <i class="pi pi-spinner pi-spin text-3xl mb-3" aria-hidden="true"></i>
+                <div>Cargando funciones del cine…</div>
+              </div>
+
+              <div
+                v-else-if="showtimesErrorMessage"
+                class="py-16 text-center text-red-600 px-6 space-y-3"
+              >
+                <i class="pi pi-exclamation-triangle text-3xl" aria-hidden="true"></i>
+                <div>No se pudieron cargar las funciones.</div>
+                <p class="text-sm text-red-500">{{ showtimesErrorMessage }}</p>
+              </div>
+
+              <div
+                v-else-if="showtimes.length"
+                class="divide-y divide-slate-100"
+              >
+                <div
+                  v-for="showtime in showtimes"
+                  :key="showtime.id"
+                  class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-6 py-5 bg-white"
+                >
+                  <div class="flex-1 space-y-1">
+                    <p class="text-base font-semibold text-slate-900">
+                      {{ movieTitle(showtime) }}
+                    </p>
+                    <p class="text-xs text-slate-500">
+                      Función {{ showtime.id }} · Sala {{ showtime.hall?.name ?? "No disponible" }}
+                    </p>
+                    <p class="text-sm text-slate-600">
+                      {{ formatShowtimeSchedule(showtime) }}
+                    </p>
+                    <p class="text-xs text-slate-500">
+                      Boletos disponibles: {{ showtime.ticketsAvailable ?? "Sin dato" }}
+                    </p>
+                  </div>
+                  <div class="md:w-40">
+                    <label
+                      :for="`ticket-qty-${showtime.id}`"
+                      class="block text-sm font-medium text-slate-700 mb-2"
+                    >
+                      Cantidad de boletos
+                    </label>
+                    <InputNumber
+                      :inputId="`ticket-qty-${showtime.id}`"
+                      v-model="ticketQuantities[showtime.id]"
+                      :min="0"
+                      :max="showtime.ticketsAvailable ?? undefined"
+                      :step="1"
+                      :minFractionDigits="0"
+                      :maxFractionDigits="0"
+                      showButtons
+                      buttonLayout="vertical"
+                      incrementButtonIcon="pi pi-plus"
+                      decrementButtonIcon="pi pi-minus"
+                      class="w-full"
+                      :disabled="submitting"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div
+                v-else
+                class="py-16 text-center text-slate-600"
+              >
+                <i class="pi pi-calendar-times text-3xl mb-3 text-slate-400" aria-hidden="true"></i>
+                <div>
+                  Este cine aún no tiene funciones activas.
+                </div>
+              </div>
+            </div>
+            <p
+              v-if="errors.tickets"
+              class="px-6 pb-6 sm:pb-8 text-sm text-red-600"
+            >
+              {{ errors.tickets }}
+            </p>
+          </section>
+
           <div class="flex items-center justify-end gap-3">
             <RouterLink to="/ventas">
               <Button
@@ -216,6 +319,33 @@
                   Aún no has agregado snacks a la venta.
                 </div>
               </div>
+              <div>
+                <h3 class="text-sm font-semibold text-slate-800 mb-2">
+                  Funciones seleccionadas
+                </h3>
+                <div v-if="selectedTicketDetails.length" class="space-y-2">
+                  <div
+                    v-for="detail in selectedTicketDetails"
+                    :key="detail.showtimeId"
+                    class="flex items-start justify-between text-sm text-slate-700"
+                  >
+                    <div class="flex-1 pr-3">
+                      <div class="font-medium text-slate-900">
+                        {{ detail.movieTitle }}
+                      </div>
+                      <div class="text-xs text-slate-500">
+                        {{ detail.schedule }}
+                      </div>
+                      <div class="text-xs text-slate-500">
+                        Sala {{ detail.hallName }} · Boletos: {{ detail.quantity }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="text-sm text-slate-500">
+                  Aún no has seleccionado funciones.
+                </div>
+              </div>
             </div>
 
             <div class="border-t border-slate-100 pt-4 space-y-2 text-sm text-slate-600">
@@ -223,6 +353,12 @@
                 <span>Total snacks</span>
                 <span class="font-semibold text-slate-900">
                   {{ formatCurrency(snacksTotal) }}
+                </span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span>Total boletos</span>
+                <span class="font-semibold text-slate-900">
+                  {{ totalTickets }}
                 </span>
               </div>
               <div class="flex items-center justify-between text-base font-semibold text-slate-900">
@@ -253,6 +389,11 @@ import {
   type SnackPage,
   type SnackView,
 } from "~/lib/api/ventas/snacks";
+import {
+  getShowtimesByCinema,
+  type ShowtimeResponseDTO,
+} from "~/lib/api/cinema/showtime";
+import { getMoviesByIds, type MovieResponseDTO } from "~/lib/api/movies/movie";
 import { createSale } from "~/lib/api/ventas/sales";
 import { useCustomQuery } from "~/composables/useCustomQuery";
 
@@ -314,6 +455,37 @@ const snacksPage = computed<SnackPage | null>(() => {
 const snacks = computed<SnackView[]>(() => snacksPage.value?.content ?? []);
 const snacksLoading = computed(() => snacksStatus.value === "loading");
 
+const {
+  state: showtimesState,
+  asyncStatus: showtimesStatus,
+  refetch: refetchShowtimes,
+} = useCustomQuery({
+  key: ["venta-showtimes", () => cinemaId.value],
+  query: async () => {
+    const id = cinemaId.value;
+    if (!id) {
+      throw new Error("Identificador de cine no disponible.");
+    }
+    return getShowtimesByCinema(id);
+  },
+});
+
+const showtimes = computed<ShowtimeResponseDTO[]>(() => {
+  const data = showtimesState.value.data as ShowtimeResponseDTO[] | undefined;
+  return data ?? [];
+});
+
+const showtimesLoading = computed(
+  () => showtimesStatus.value === "loading"
+);
+
+const showtimesErrorMessage = computed(() => {
+  const maybeError = showtimesState.value.error as
+    | { message?: string }
+    | undefined;
+  return maybeError?.message ?? null;
+});
+
 const snackQuantities = reactive<Record<string, number>>({});
 
 watch(
@@ -333,6 +505,69 @@ watch(
   { immediate: true }
 );
 
+const ticketQuantities = reactive<Record<string, number>>({});
+
+watch(
+  showtimes,
+  (items) => {
+    const current = new Set(Object.keys(ticketQuantities));
+    for (const showtime of items) {
+      if (typeof ticketQuantities[showtime.id] !== "number") {
+        ticketQuantities[showtime.id] = 0;
+      }
+      current.delete(showtime.id);
+    }
+    for (const key of current) {
+      delete ticketQuantities[key];
+    }
+  },
+  { immediate: true }
+);
+
+const movieIds = computed(() => {
+  const ids = new Set<string>();
+  for (const showtime of showtimes.value) {
+    const movieId = showtime.cinemaMovie?.movieId;
+    if (movieId) ids.add(movieId);
+  }
+  return Array.from(ids);
+});
+
+const movieIdsKey = computed(() => {
+  if (!movieIds.value.length) return "empty";
+  return [...movieIds.value].sort().join("|");
+});
+
+const { state: moviesState, refetch: refetchMovies } = useCustomQuery({
+  key: ["venta-showtimes-movies", () => movieIdsKey.value],
+  query: async () => {
+    const ids = movieIds.value;
+    if (!ids.length) return [];
+    return getMoviesByIds(ids);
+  },
+});
+
+watch(
+  movieIdsKey,
+  (value, previous) => {
+    if (value === previous) return;
+    if (value === "empty") return;
+    refetchMovies();
+  },
+  { immediate: false }
+);
+
+const moviesById = computed(() => {
+  const data = moviesState.value.data as MovieResponseDTO[] | undefined;
+  const map = new Map<string, MovieResponseDTO>();
+  if (data) {
+    for (const movie of data) {
+      map.set(movie.id, movie);
+    }
+  }
+  return map;
+});
+
 const form = reactive({
   clientCode: "",
 });
@@ -340,6 +575,7 @@ const form = reactive({
 const errors = reactive({
   clientCode: null as string | null,
   snacks: null as string | null,
+  tickets: null as string | null,
 });
 
 const submitting = ref(false);
@@ -348,6 +584,14 @@ const snacksMap = computed<Record<string, SnackView>>(() => {
   const map: Record<string, SnackView> = {};
   for (const snack of snacks.value) {
     map[snack.id] = snack;
+  }
+  return map;
+});
+
+const showtimesMap = computed(() => {
+  const map = new Map<string, ShowtimeResponseDTO>();
+  for (const showtime of showtimes.value) {
+    map.set(showtime.id, showtime);
   }
   return map;
 });
@@ -374,6 +618,48 @@ const selectedSnackDetails = computed(() =>
   })
 );
 
+const selectedTickets = computed(() =>
+  Object.entries(ticketQuantities)
+    .filter(([showtimeId, quantity]) => {
+      const normalizedQuantity = Number(quantity);
+      if (!showtimesMap.value.has(showtimeId)) return false;
+      return Number.isFinite(normalizedQuantity) && normalizedQuantity > 0;
+    })
+    .map(([showtimeId, quantity]) => ({
+      showtimeId,
+      quantity: Number(quantity),
+    }))
+);
+
+const selectedTicketDetails = computed(() =>
+  selectedTickets.value.map((item) => {
+    const showtime = showtimesMap.value.get(item.showtimeId);
+    const movieId = showtime?.cinemaMovie?.movieId ?? "";
+    const movie = movieId ? moviesById.value.get(movieId) ?? null : null;
+    return {
+      showtimeId: item.showtimeId,
+      quantity: item.quantity,
+      movieTitle: movie?.title ?? "Película no disponible",
+      hallName: showtime?.hall?.name ?? "No disponible",
+      schedule: showtime
+        ? formatShowtimeSchedule(showtime)
+        : "Horario no disponible",
+    };
+  })
+);
+
+const ticketsPayload = computed(() =>
+  selectedTickets.value.flatMap((item) =>
+    Array.from({ length: item.quantity }, () => ({
+      cinemaFunctionId: item.showtimeId,
+    }))
+  )
+);
+
+const totalTickets = computed(() =>
+  selectedTickets.value.reduce((total, item) => total + item.quantity, 0)
+);
+
 const snacksTotal = computed(() =>
   selectedSnackDetails.value.reduce((total, item) => total + item.lineTotal, 0)
 );
@@ -383,7 +669,7 @@ const grandTotal = computed(() => snacksTotal.value);
 const submitDisabled = computed(() => {
   if (submitting.value) return true;
   if (!form.clientCode.trim()) return true;
-  if (!selectedSnacks.value.length) return true;
+  if (!selectedSnacks.value.length && !ticketsPayload.value.length) return true;
   return false;
 });
 
@@ -401,22 +687,39 @@ watch(
   }
 );
 
+watch(
+  selectedTickets,
+  () => {
+    errors.tickets = null;
+  }
+);
+
 function resetForm() {
   form.clientCode = "";
   for (const key of Object.keys(snackQuantities)) {
     snackQuantities[key] = 0;
   }
+  for (const key of Object.keys(ticketQuantities)) {
+    ticketQuantities[key] = 0;
+  }
 }
 
 async function handleSubmit() {
-  errors.clientCode = form.clientCode.trim()
+  const trimmedClientCode = form.clientCode.trim();
+
+  errors.clientCode = trimmedClientCode
     ? null
     : "El código de usuario es obligatorio.";
-  errors.snacks = selectedSnacks.value.length
-    ? null
-    : "Selecciona al menos un snack para la venta.";
 
-  if (errors.clientCode || errors.snacks) {
+  const selectionMessage =
+    "Selecciona al menos un snack o un boleto para la venta.";
+  const hasSnacks = selectedSnacks.value.length > 0;
+  const hasTickets = ticketsPayload.value.length > 0;
+
+  errors.snacks = hasSnacks || hasTickets ? null : selectionMessage;
+  errors.tickets = hasTickets || hasSnacks ? null : selectionMessage;
+
+  if (errors.clientCode || errors.snacks || errors.tickets) {
     toast.error("Revisa los campos obligatorios antes de continuar.");
     return;
   }
@@ -430,17 +733,18 @@ async function handleSubmit() {
   submitting.value = true;
   try {
     await createSale({
-      clientId: form.clientCode.trim(),
+      clientId: trimmedClientCode,
       cinemaId: cinema,
       snacks: selectedSnacks.value.map((item) => ({
         snackId: item.snackId,
         quantity: item.quantity,
       })),
-      tickets: [],
+      tickets: ticketsPayload.value,
     });
 
     toast.success("La venta se registró correctamente.");
     resetForm();
+    await Promise.all([refetchSnacks(), refetchShowtimes(), refetchMovies()]);
   } catch (error: any) {
     const message =
       error?.data?.message ??
@@ -450,6 +754,34 @@ async function handleSubmit() {
   } finally {
     submitting.value = false;
   }
+}
+
+function movieTitle(showtime: ShowtimeResponseDTO) {
+  const movieId = showtime.cinemaMovie?.movieId;
+  if (!movieId) return "Película no disponible";
+  return moviesById.value.get(movieId)?.title ?? "Película no disponible";
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString("es-GT", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function formatShowtimeSchedule(showtime: ShowtimeResponseDTO) {
+  const start = formatDateTime(showtime.startTime);
+  const end = formatDateTime(showtime.endTime);
+  if (start === "—" && end === "—") return "Horario no disponible";
+  if (end === "—") return start;
+  if (start === "—") return end;
+  return `${start} – ${end}`;
 }
 
 function formatCurrency(value?: number | null) {

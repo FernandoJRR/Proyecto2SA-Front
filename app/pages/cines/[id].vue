@@ -134,6 +134,52 @@
       <section class="space-y-6">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
+            <h2 class="text-xl font-bold text-slate-900">Funciones disponibles</h2>
+            <p class="text-sm text-slate-600">
+              Consulta los próximos horarios y películas programadas en este cine.
+            </p>
+          </div>
+          <span v-if="showtimesStatus === 'success'" class="text-sm text-slate-600">
+            {{ totalShowtimes }}
+            {{ totalShowtimes === 1 ? "función programada" : "funciones programadas" }}
+          </span>
+        </div>
+
+        <div v-if="showtimesStatus === 'loading' && !showtimes.length" class="py-16 text-center text-slate-600">
+          <i class="pi pi-spinner pi-spin text-2xl mb-3" aria-hidden="true"></i>
+          Cargando funciones…
+        </div>
+
+        <div v-else-if="showtimesStatus === 'error'" class="py-16 text-center text-red-600 space-y-3">
+          <p>{{ showtimesErrorMessage }}</p>
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-red-300 text-sm font-medium text-red-700 hover:bg-red-50"
+            @click="refetchShowtimes"
+          >
+            <i class="pi pi-refresh text-xs" aria-hidden="true"></i>
+            Reintentar
+          </button>
+        </div>
+
+        <div v-else-if="!showtimes.length" class="py-16 text-center text-slate-600">
+          Aún no hay funciones activas para este cine.
+        </div>
+
+        <div v-else class="-mx-1 overflow-hidden px-1">
+          <div class="flex gap-5 overflow-x-auto pb-4">
+            <PublicShowtimeCard
+              v-for="showtime in showtimes"
+              :key="showtime.id"
+              :showtime="showtime"
+            />
+          </div>
+        </div>
+      </section>
+
+      <section class="space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
             <h2 class="text-xl font-bold text-slate-900">Snacks disponibles</h2>
             <p class="text-sm text-slate-600">
               Este catálogo es solo informativo; las compras se realizan en taquilla.
@@ -166,46 +212,45 @@
           Por ahora este cine no tiene snacks disponibles.
         </div>
 
-        <div
-          v-else
-          class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6"
-        >
-          <article
-            v-for="snack in snacks"
-            :key="snack.id"
-            class="h-full rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col"
-          >
-            <div class="bg-slate-100 h-48 overflow-hidden flex items-center justify-center">
-              <img
-                v-if="snack.imageUrl"
-                :src="snack.imageUrl"
-                :alt="snack.name"
-                class="w-full h-full object-cover"
-                loading="lazy"
-              />
-              <div v-else class="w-full h-full flex items-center justify-center text-slate-400 text-sm">
-                Sin imagen
+        <div v-else class="-mx-1 overflow-hidden px-1">
+          <div class="flex gap-5 overflow-x-auto pb-4">
+            <article
+              v-for="snack in snacks"
+              :key="snack.id"
+              class="w-72 flex-shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            >
+              <div class="flex h-40 items-center justify-center overflow-hidden bg-slate-100">
+                <img
+                  v-if="snack.imageUrl"
+                  :src="snack.imageUrl"
+                  :alt="snack.name"
+                  class="h-full w-full object-cover"
+                  loading="lazy"
+                />
+                <div v-else class="flex h-full w-full items-center justify-center text-slate-400 text-sm">
+                  Sin imagen
+                </div>
               </div>
-            </div>
-            <div class="p-5 space-y-3 flex-1 flex flex-col">
-              <div>
-                <h3 class="text-lg font-semibold text-slate-900">
-                  {{ snack.name }}
-                </h3>
-                <p class="text-sm text-slate-500">
-                  Disponible en este cine.
-                </p>
+              <div class="flex h-full flex-col gap-3 p-5">
+                <div>
+                  <h3 class="text-lg font-semibold text-slate-900">
+                    {{ snack.name }}
+                  </h3>
+                  <p class="text-sm text-slate-500">
+                    Disponible en este cine.
+                  </p>
+                </div>
+                <div class="mt-auto">
+                  <p class="text-sm font-medium text-slate-600 uppercase tracking-wide">
+                    Precio sugerido
+                  </p>
+                  <p class="text-lg font-semibold text-primary-600">
+                    {{ formatCurrency(snack.price) }}
+                  </p>
+                </div>
               </div>
-              <div class="mt-auto">
-                <p class="text-sm font-medium text-slate-600 uppercase tracking-wide">
-                  Precio sugerido
-                </p>
-                <p class="text-lg font-semibold text-primary-600">
-                  {{ formatCurrency(snack.price) }}
-                </p>
-              </div>
-            </div>
-          </article>
+            </article>
+          </div>
         </div>
       </section>
     </template>
@@ -217,6 +262,7 @@ import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AdRenderer from '~/components/AdRenderer.vue'
 import PublicCinemaTemplate from '~/components/PublicCinemaTemplate.vue'
+import PublicShowtimeCard from '~/components/PublicShowtimeCard.vue'
 import { getCinemaById, type CinemaResponseDTO } from '~/lib/api/cinema/cinema'
 import { searchSnacksByCinema, type SnackView } from '~/lib/api/ventas/snacks'
 import {
@@ -224,6 +270,7 @@ import {
   getAnuncioAleatorioByCinemaAndType,
   type AnuncioViewResponseDTO,
 } from '~/lib/api/anuncios/anuncio'
+import { getShowtimesByCinema, type ShowtimeResponseDTO } from '~/lib/api/cinema/showtime'
 import { useCustomQuery } from '~/composables/useCustomQuery'
 
 const route = useRoute()
@@ -282,6 +329,32 @@ const snacksErrorMessage = computed(() => {
   return error?.message ?? 'No se pudo cargar el catálogo de snacks.'
 })
 const totalSnacks = computed(() => snacksState.value?.data?.totalElements ?? snacks.value.length ?? 0)
+
+const {
+  state: showtimesState,
+  asyncStatus: showtimesAsyncStatus,
+  refetch: refetchShowtimes,
+} = useCustomQuery({
+  key: ['public-cinema-showtimes', () => cinemaId.value],
+  query: async () => {
+    const id = cinemaId.value
+    if (!id) {
+      throw new Error('Identificador de cine no disponible.')
+    }
+    return getShowtimesByCinema(id)
+  },
+})
+
+const showtimesStatus = computed(() => showtimesAsyncStatus?.value ?? 'loading')
+const showtimes = computed<ShowtimeResponseDTO[]>(() => {
+  const data = showtimesState.value?.data as ShowtimeResponseDTO[] | undefined
+  return data ?? []
+})
+const showtimesErrorMessage = computed(() => {
+  const error = showtimesState.value?.error as { message?: string } | undefined
+  return error?.message ?? 'No se pudieron cargar las funciones.'
+})
+const totalShowtimes = computed(() => showtimes.value.length)
 
 const adsLoading = ref(false)
 const textBannerAd = ref<AnuncioViewResponseDTO | null>(null)

@@ -220,15 +220,15 @@
               </p>
             </div>
             <span class="text-sm text-slate-600">
-              {{ sale.saleLineTickets.length }}
-              {{ sale.saleLineTickets.length === 1 ? "ticket" : "tickets" }}
+              {{ ticketsWithDetails.length }}
+              {{ ticketsWithDetails.length === 1 ? "ticket" : "tickets" }}
             </span>
           </div>
 
           <DataTable
-            :value="sale.saleLineTickets"
+            :value="ticketsWithDetails"
             dataKey="id"
-            :paginator="sale.saleLineTickets.length > 5"
+            :paginator="ticketsWithDetails.length > 5"
             :rows="5"
             :rowsPerPageOptions="[5, 10]"
             tableStyle="min-width: 40rem"
@@ -243,7 +243,14 @@
               <template #body="{ data }">
                 <div class="flex flex-col">
                   <span class="font-semibold text-slate-900">
-                    {{ data.ticketView?.cinemaFunctionId ?? "Función N/D" }}
+                    {{ data.movie?.title ?? "Película no disponible" }}
+                  </span>
+                  <span class="text-xs text-slate-500">
+                    Función {{ data.ticketView?.cinemaFunctionId ?? "N/D" }}
+                    · Sala {{ data.showtime?.hall?.name ?? "No disponible" }}
+                  </span>
+                  <span class="text-xs text-slate-500">
+                    {{ formatShowtimeSchedule(data.showtime) }}
                   </span>
                   <span class="text-xs text-slate-500">
                     Ticket: {{ data.ticketView?.id ?? "—" }}
@@ -292,11 +299,22 @@ import {
   SaleStatusType,
   retrySale,
   type SaleResponseDTO,
+  type SaleLineTicketResponseDTO,
 } from "~/lib/api/ventas/sales";
 import {
   getCinemaById,
   type CinemaResponseDTO,
 } from "~/lib/api/cinema/cinema";
+import {
+  getShowtimesByCinema,
+  type ShowtimeResponseDTO,
+} from "~/lib/api/cinema/showtime";
+import { getMoviesByIds, type MovieResponseDTO } from "~/lib/api/movies/movie";
+
+type TicketWithDetails = SaleLineTicketResponseDTO & {
+  showtime: ShowtimeResponseDTO | null;
+  movie: MovieResponseDTO | null;
+};
 
 const route = useRoute();
 
@@ -346,6 +364,83 @@ const cinema = computed<CinemaResponseDTO | null>(() => {
   return data ?? null;
 });
 
+const {
+  state: showtimesState,
+  refetch: refetchShowtimes,
+} = useCustomQuery({
+  key: ["client-sale-showtimes", () => cinemaId.value || "unassigned"],
+  query: async () => {
+    const id = cinemaId.value?.trim();
+    if (!id) return [] as ShowtimeResponseDTO[];
+    return getShowtimesByCinema(id);
+  },
+});
+
+const showtimes = computed<ShowtimeResponseDTO[]>(() => {
+  const data = showtimesState.value.data as ShowtimeResponseDTO[] | undefined;
+  return data ?? [];
+});
+
+const showtimeById = computed(() => {
+  const map = new Map<string, ShowtimeResponseDTO>();
+  for (const item of showtimes.value) {
+    map.set(item.id, item);
+  }
+  return map;
+});
+
+const movieIds = computed(() => {
+  const ids = new Set<string>();
+  const tickets = sale.value?.saleLineTickets ?? [];
+  for (const ticket of tickets) {
+    const functionId = ticket.ticketView?.cinemaFunctionId;
+    if (!functionId) continue;
+    const showtime = showtimeById.value.get(functionId);
+    const movieId = showtime?.cinemaMovie?.movieId;
+    if (movieId) ids.add(movieId);
+  }
+  return Array.from(ids);
+});
+
+const movieIdsKey = computed(() => {
+  if (!movieIds.value.length) return "empty";
+  return [...movieIds.value].sort().join("|");
+});
+
+const {
+  state: moviesState,
+  refetch: refetchMovies,
+} = useCustomQuery({
+  key: ["client-sale-movies", () => movieIdsKey.value],
+  query: async () => {
+    const ids = movieIds.value;
+    if (!ids.length) return [] as MovieResponseDTO[];
+    return getMoviesByIds(ids);
+  },
+});
+
+const moviesById = computed(() => {
+  const data = moviesState.value.data as MovieResponseDTO[] | undefined;
+  const map = new Map<string, MovieResponseDTO>();
+  if (data) {
+    for (const movie of data) {
+      map.set(movie.id, movie);
+    }
+  }
+  return map;
+});
+
+const ticketsWithDetails = computed<TicketWithDetails[]>(() => {
+  const tickets = sale.value?.saleLineTickets ?? [];
+  return tickets.map((ticket) => {
+    const functionId = ticket.ticketView?.cinemaFunctionId ?? "";
+    const showtime = functionId ? showtimeById.value.get(functionId) ?? null : null;
+    const movieId = showtime?.cinemaMovie?.movieId ?? "";
+    const movie = movieId ? moviesById.value.get(movieId) ?? null : null;
+    return { ...ticket, showtime, movie };
+  });
+});
+
 const loading = computed(() => saleStatus.value === "loading");
 const retrying = ref(false);
 
@@ -363,7 +458,7 @@ async function handleRetryPayment() {
     retrying.value = true;
     await retrySale(id);
     toast.success("Intento de pago reenviado correctamente.");
-    await refetchSale();
+    await Promise.all([refetchSale(), refetchShowtimes(), refetchMovies()]);
   } catch (error: any) {
     const message =
       error?.data?.message ??
@@ -395,6 +490,16 @@ function formatDateTime(value?: string | null) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function formatShowtimeSchedule(showtime?: ShowtimeResponseDTO | null) {
+  if (!showtime) return "Horario no disponible";
+  const start = formatDateTime(showtime.startTime);
+  const end = formatDateTime(showtime.endTime);
+  if (start === "—" && end === "—") return "Horario no disponible";
+  if (start === "—") return end;
+  if (end === "—") return start;
+  return `${start} – ${end}`;
 }
 
 function formatStatus(status: SaleStatusType) {
