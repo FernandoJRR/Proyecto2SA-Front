@@ -124,13 +124,92 @@ export const snackSalesByCinemaReport = async (
   return response;
 };
 
-export const snackSalesByCinemaReportPdf = async (
-  cinemaId: string,
-  query: SnackSalesByCinemaQuery
-): Promise<Blob> => {
-  const response = await postBlobToApi(
-    `${CURRENT_SALES_URI}/reports/sales/snacks/cinema/${cinemaId}/pdf`,
-    query
+// --- Interfaces for 'boletos vendidos' report
+export interface CinemaSimpleDTO {
+  id: string;
+  name: string;
+}
+
+export interface MovieSimpleDTO {
+  id: string;
+  title: string;
+}
+
+export interface ShowtimeReportDTO {
+  hallId: string;
+  hallName: string;
+  cinema: CinemaSimpleDTO;
+  // ISO 8601 date-time strings
+  startTime: string;
+  endTime: string;
+  ticketsAvailable: number;
+}
+
+export interface FunctionReportDTO {
+  functionId: string;
+  cinemaId: string;
+  cinemaRoomId: string;
+  movieId: string;
+  ticketsSold: number;
+  showtime: ShowtimeReportDTO;
+  movie: MovieSimpleDTO;
+}
+
+export interface TicketsSoldReportDTO {
+  from: string; // ISO date (e.g. "2025-10-01")
+  to: string; // ISO date (e.g. "2025-11-29")
+  totalTickets: number;
+  functions: FunctionReportDTO[];
+}
+
+export interface TicketsSoldReportQuery {
+  from: string; // ISO date (e.g. "2025-10-01")
+  to: string; // ISO date (e.g. "2025-11-29")
+}
+
+export const reportDeBoletosVendidos = async (
+  query: TicketsSoldReportQuery
+): Promise<TicketsSoldReportDTO> => {
+  const response = await $api<TicketsSoldReportDTO>(
+    `${CURRENT_SALES_URI}/reports/sales/tickets`,
+    {
+      method: "GET",
+      params: query,
+    }
+  );
+  return response;
+};
+
+// Top de cines con mayor volumen de ventas en un periodo
+// --- Interfaces for 'ventas por cine' report
+export interface CinemaSalesLineDTO {
+  cinemaId: string; // UUID
+  cinemaName: string;
+  totalAmount: number; // monetary amount
+  totalSales: number; // number of sales
+}
+
+export interface CinemaSalesReportDTO {
+  from: string; // ISO date (e.g. "2025-10-01")
+  to: string; // ISO date (e.g. "2025-11-29")
+  cinemas: CinemaSalesLineDTO[];
+}
+
+export interface CinemaSalesReportQuery {
+  from: string; // ISO date (e.g. "2025-10-01")
+  to: string; // ISO date (e.g. "2025-11-29")
+  limit?: number; // optional limit of top cinemas
+}
+
+export const reportDeVentasPorCine = async (
+  query: CinemaSalesReportQuery
+): Promise<CinemaSalesReportDTO> => {
+  const response = await $api<CinemaSalesReportDTO>(
+    `${CURRENT_SALES_URI}/reports/sales/cinemas/top`,
+    {
+      method: "GET",
+      params: query,
+    }
   );
   return response;
 };
