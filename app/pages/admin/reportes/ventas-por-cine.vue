@@ -14,10 +14,10 @@
           </RouterLink>
           <div>
             <h1 class="text-2xl font-extrabold tracking-tight text-slate-900">
-              Snacks vendidos por cine
+              Ventas por cine
             </h1>
             <p class="text-slate-600 text-sm">
-              Consulta las ventas de snacks por cine en el periodo seleccionado.
+              Consulta el top de cines con mayor volumen de ventas en el periodo seleccionado.
             </p>
           </div>
         </div>
@@ -42,31 +42,7 @@
     <!-- Filters -->
     <section class="max-w-7xl mx-auto mb-6" aria-label="Filtros del reporte">
       <div class="rounded-2xl border border-slate-200 bg-white shadow p-6 sm:p-8">
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-2">
-              Cine *
-            </label>
-            <Dropdown
-              v-model="form.cinemaId"
-              :options="cinemaOptions"
-              optionLabel="label"
-              optionValue="value"
-              placeholder="Selecciona el cine"
-              class="w-full"
-              :loading="cinemasLoading"
-              :disabled="cinemasLoading || !cinemaOptions.length"
-              :showClear="!companyScoped"
-              filter
-              filterPlaceholder="Buscar cine..."
-            />
-            <p v-if="!cinemasLoading && !cinemaOptions.length" class="mt-1 text-sm text-slate-500">
-              No hay cines disponibles para tu cuenta.
-            </p>
-            <p v-if="errors.cinemaId" class="mt-1 text-sm text-red-600">
-              {{ errors.cinemaId }}
-            </p>
-          </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-2">
               Desde * (fecha)
@@ -97,39 +73,48 @@
               {{ errors.to }}
             </p>
           </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">
+              Límite de cines (opcional)
+            </label>
+            <InputNumber
+              v-model="form.limit"
+              class="w-full"
+              :min="1"
+              :useGrouping="false"
+              placeholder="Ej. 10"
+            />
+            <p v-if="errors.limit" class="mt-1 text-sm text-red-600">
+              {{ errors.limit }}
+            </p>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- Summary -->
     <main class="max-w-7xl mx-auto space-y-4" role="main">
+      <!-- Summary -->
       <div
         v-if="report"
         class="rounded-2xl border border-slate-200 bg-white shadow p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
       >
         <div>
           <p class="text-xs uppercase text-slate-500 tracking-wide">
-            Cine
-          </p>
-          <p class="text-lg font-semibold text-slate-900">
-            {{ report.cinema?.name || report.cinema?.id || form.cinemaId }}
-          </p>
-          <p class="text-sm text-slate-600">
-            ID: <span class="font-mono">{{ report.cinema?.id || "—" }}</span>
-          </p>
-        </div>
-        <div class="text-right">
-          <p class="text-xs uppercase text-slate-500 tracking-wide">
             Periodo
           </p>
           <p class="text-sm text-slate-700">
             {{ formatDate(report.from) }} → {{ formatDate(report.to) }}
           </p>
-          <p class="mt-2 text-xs uppercase text-slate-500 tracking-wide">
-            Total snacks vendidos
+        </div>
+        <div class="text-right">
+          <p class="text-xs uppercase text-slate-500 tracking-wide">
+            Total ventas (Q)
           </p>
           <p class="text-xl font-semibold text-emerald-600">
-            {{ formatNumber(report.totalQuantity) }}
+            {{ formatCurrency(totalAmount) }}
+          </p>
+          <p class="text-xs text-slate-500 mt-1">
+            {{ rows.length }} cines listados · {{ formatNumber(totalSales) }} ventas registradas.
           </p>
         </div>
       </div>
@@ -138,7 +123,7 @@
       <div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow">
         <DataTable
           :value="rows"
-          dataKey="snackId"
+          dataKey="cinemaId"
           :loading="loading"
           :paginator="true"
           :rows="10"
@@ -150,7 +135,7 @@
           <template #header>
             <div class="flex flex-wrap items-center justify-between gap-2">
               <span class="text-sm text-slate-600">
-                {{ rows.length }} snacks encontrados.
+                {{ rows.length }} cines encontrados.
               </span>
               <Button
                 icon="pi pi-refresh"
@@ -163,21 +148,26 @@
             </div>
           </template>
 
-          <Column field="snackName" header="Snack">
+          <Column field="cinemaName" header="Cine">
             <template #body="{ data }">
               <div class="flex flex-col">
                 <span class="font-medium text-slate-800">
-                  {{ data.snackName || "—" }}
+                  {{ data.cinemaName || "—" }}
                 </span>
                 <span class="text-xs text-slate-500 font-mono">
-                  {{ data.snackId }}
+                  {{ data.cinemaId }}
                 </span>
               </div>
             </template>
           </Column>
-          <Column field="totalQuantity" header="Cantidad vendida">
+          <Column field="totalSales" header="Número de ventas" style="width: 10rem">
             <template #body="{ data }">
-              <span class="font-semibold">{{ formatNumber(data.totalQuantity) }}</span>
+              <span class="font-semibold">{{ formatNumber(data.totalSales) }}</span>
+            </template>
+          </Column>
+          <Column field="totalAmount" header="Monto total" style="width: 10rem">
+            <template #body="{ data }">
+              <span class="font-semibold text-indigo-600">{{ formatCurrency(data.totalAmount) }}</span>
             </template>
           </Column>
         </DataTable>
@@ -187,126 +177,76 @@
     <PdfViewerModal
       v-model="showPdf"
       :blob="pdfBlob"
-      title="Reporte de snacks vendidos por cine"
-      file-name="reporte-snacks-cine.pdf"
+      title="Reporte de ventas por cine"
+      file-name="reporte-ventas-por-cine.pdf"
     />
   </div>
 </template>
 
 <script lang="ts" setup>
-import { computed, reactive, ref, watch } from "vue";
+import { computed, reactive, ref } from "vue";
 import { RouterLink } from "vue-router";
-import { storeToRefs } from "pinia";
 import Button from "primevue/button";
 import Calendar from "primevue/calendar";
-import Dropdown from "primevue/dropdown";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
+import InputNumber from "primevue/inputnumber";
 import { toast } from "vue-sonner";
 import PdfViewerModal from "~/components/common/PdfViewerModal.vue";
 import {
-  snackSalesByCinemaReport,
-  snackSalesByCinemaReportPdf,
-  type SnackSalesByCinemaQuery,
-  type SnackReportByCinemaReportDTO,
-  type SnackSalesByCinemaLineDTO,
+  reportDeVentasPorCine,
+  reportDeVentasPorCinePdf,
+  type CinemaSalesLineDTO,
+  type CinemaSalesReportDTO,
+  type CinemaSalesReportQuery,
 } from "~/lib/api/reportes/reportes";
-import {
-  getAllCinemas,
-  getCinemasByCompanyId,
-  type CinemaResponseDTO,
-} from "~/lib/api/cinema/cinema";
-import { useAuthStore } from "~/stores/auth";
-import { useCustomQuery } from "~/composables/useCustomQuery";
-
-const authStore = useAuthStore();
-const { companyId } = storeToRefs(authStore);
 
 const form = reactive<{
-  cinemaId: string | null;
   from: Date | null;
   to: Date | null;
+  limit: number | null;
 }>({
-  cinemaId: null,
   from: null,
   to: null,
+  limit: null,
 });
 
 const errors = reactive<{
-  cinemaId: string | null;
   from: string | null;
   to: string | null;
+  limit: string | null;
 }>({
-  cinemaId: null,
   from: null,
   to: null,
+  limit: null,
 });
 
-const report = ref<SnackReportByCinemaReportDTO | null>(null);
+const report = ref<CinemaSalesReportDTO | null>(null);
 const loading = ref(false);
 const pdfLoading = ref(false);
 const pdfBlob = ref<Blob | null>(null);
 const showPdf = ref(false);
 
-const {
-  state: cinemasState,
-  asyncStatus: cinemasStatus,
-  refetch: refetchCinemas,
-} = useCustomQuery({
-  key: ["snack-sales-report-cinemas", companyId.value ?? null],
-  query: () => {
-    const id = companyId.value?.trim();
-    return id ? getCinemasByCompanyId(id) : getAllCinemas();
-  },
+const rows = computed<CinemaSalesLineDTO[]>(() => {
+  return report.value?.cinemas ?? [];
 });
 
-const cinemaOptions = computed<Array<{ label: string; value: string }>>(() =>
-  ((cinemasState.value.data ?? []) as CinemaResponseDTO[]).map((cinema) => ({
-    label: cinema.name,
-    value: cinema.id,
-  }))
-);
+const totalAmount = computed(() => {
+  return rows.value.reduce((acc, row) => acc + (row.totalAmount ?? 0), 0);
+});
 
-const cinemasLoading = computed(() => cinemasStatus.value === "loading");
-const companyScoped = computed(() => !!companyId.value);
-
-const rows = computed<SnackSalesByCinemaLineDTO[]>(() => {
-  return report.value?.snacks ?? [];
+const totalSales = computed(() => {
+  return rows.value.reduce((acc, row) => acc + (row.totalSales ?? 0), 0);
 });
 
 const filtersApplied = computed(
-  () => !!form.cinemaId || !!form.from || !!form.to
-);
-
-watch(companyId, () => {
-  form.cinemaId = null;
-  refetchCinemas();
-});
-
-watch(
-  cinemaOptions,
-  (options) => {
-    if (!companyScoped.value) return;
-    if (!options.length) {
-      form.cinemaId = null;
-      return;
-    }
-    if (!form.cinemaId || !options.some((opt) => opt.value === form.cinemaId)) {
-      form.cinemaId = options[0].value;
-    }
-  },
-  { immediate: true }
+  () => !!form.from || !!form.to || form.limit !== null
 );
 
 function validate() {
-  const cinemaValue =
-    typeof form.cinemaId === "string" ? form.cinemaId.trim() : "";
-  if (cinemaValue) {
-    form.cinemaId = cinemaValue;
-  }
-  errors.cinemaId = cinemaValue ? null : "Selecciona el cine.";
   errors.from = form.from ? null : "Selecciona una fecha de inicio.";
   errors.to = form.to ? null : "Selecciona una fecha final.";
+  errors.limit = null;
 
   if (!errors.from && !errors.to && form.from && form.to) {
     if (form.from > form.to) {
@@ -314,7 +254,13 @@ function validate() {
     }
   }
 
-  return !errors.cinemaId && !errors.from && !errors.to;
+  if (form.limit !== null) {
+    if (Number.isNaN(form.limit) || form.limit <= 0) {
+      errors.limit = "Ingresa un límite mayor a cero.";
+    }
+  }
+
+  return !errors.from && !errors.to && !errors.limit;
 }
 
 function toDateString(date: Date | null) {
@@ -325,26 +271,28 @@ function toDateString(date: Date | null) {
   return `${year}-${month}-${day}`;
 }
 
-function buildQuery(): SnackSalesByCinemaQuery | null {
+function buildQuery(): CinemaSalesReportQuery | null {
   if (!validate()) return null;
-  return {
+  const query: CinemaSalesReportQuery = {
     from: toDateString(form.from)!,
     to: toDateString(form.to)!,
   };
+  if (form.limit !== null && !Number.isNaN(form.limit)) {
+    query.limit = form.limit;
+  }
+  return query;
 }
 
 async function runSearch() {
   const query = buildQuery();
   if (!query) return;
-  const cinemaId = form.cinemaId;
-  if (!cinemaId) return;
 
   loading.value = true;
   try {
-    const response = await snackSalesByCinemaReport(cinemaId, query);
+    const response = await reportDeVentasPorCine(query);
     report.value = response;
-    if (!response.snacks?.length) {
-      toast.info("No se registraron ventas de snacks en ese periodo.");
+    if (!response.cinemas.length) {
+      toast.info("No se registraron ventas en ese periodo.");
     }
   } catch (error: any) {
     const message =
@@ -360,12 +308,10 @@ async function runSearch() {
 async function generatePdf() {
   const query = buildQuery();
   if (!query) return;
-  const cinemaId = form.cinemaId;
-  if (!cinemaId) return;
 
   pdfLoading.value = true;
   try {
-    const blob = await snackSalesByCinemaReportPdf(cinemaId, query);
+    const blob = await reportDeVentasPorCinePdf(query);
     pdfBlob.value = blob;
     showPdf.value = true;
   } catch (error: any) {
@@ -392,6 +338,20 @@ function formatNumber(value?: number | null) {
     return new Intl.NumberFormat("es-GT").format(numberValue);
   } catch {
     return `${numberValue}`;
+  }
+}
+
+function formatCurrency(value?: number | null) {
+  if (value === null || value === undefined) return "—";
+  const numberValue = Number(value);
+  if (Number.isNaN(numberValue)) return "—";
+  try {
+    return new Intl.NumberFormat("es-GT", {
+      style: "currency",
+      currency: "GTQ",
+    }).format(numberValue);
+  } catch {
+    return `Q. ${numberValue.toFixed(2)}`;
   }
 }
 

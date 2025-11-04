@@ -78,6 +78,8 @@
 </template>
 
 <script lang="ts" setup>
+import { computed, reactive, ref } from "vue";
+import { storeToRefs } from "pinia";
 import { RouterLink } from "vue-router";
 import MenuShortcutCard from "~/components/cards/MenuShortcutCard.vue";
 import IconField from "primevue/iconfield";
@@ -85,6 +87,7 @@ import InputIcon from "primevue/inputicon";
 import InputText from "primevue/inputtext";
 import Button from "primevue/button";
 import { AppRoles, hasAnyRole } from "~/lib/auth/roles";
+import { useAuthStore } from "~/stores/auth";
 
 const authStore = useAuthStore();
 const { rol } = storeToRefs(authStore);
@@ -110,7 +113,19 @@ const reports = reactive([
     description: "Reporte de snacks vendidos en cada cine",
     route: "/admin/reportes/snacks-vendidos-cine",
     permitedRoles: [AppRoles.ADMIN, AppRoles.CINEMA_ADMIN],
-  }
+  },
+  {
+    title: "Boletos Vendidos",
+    description: "Reporte de boletos vendidos por función y periodo",
+    route: "/admin/reportes/boletos-vendidos",
+    permitedRoles: [AppRoles.ADMIN],
+  },
+  {
+    title: "Ventas por Cine",
+    description: "Top de cines con mayor volumen de ventas",
+    route: "/admin/reportes/ventas-por-cine",
+    permitedRoles: [AppRoles.ADMIN],
+  },
 ]);
 
 const filteredReports = computed(() => {

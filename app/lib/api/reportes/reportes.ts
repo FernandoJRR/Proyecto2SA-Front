@@ -4,7 +4,7 @@ import {
   type AnuncioViewResponseDTO,
 } from "../anuncios/anuncio";
 import { CURRENT_SALES_URI } from "../ventas/sales";
-import type { SnackView } from "../ventas/snacks";
+import { getBlobFromApi, postBlobToApi } from "~/utils/plainFetch";
 
 export interface AnunciosComradosQuery {
   from: string; // ISO date time string e.g. 2025-10-01T00:00:00
@@ -89,20 +89,19 @@ export interface CinemaView {
   name: string;
 }
 
-export interface SnackSalesByCinemaDTO {
-  cinemaId: string;
+export interface SnackSalesByCinemaLineDTO {
   snackId: string;
   totalQuantity: number;
-  totalAmount: number;
-  snack: SnackView;
+  snackName: string;
 }
 
 export interface SnackReportByCinemaReportDTO {
-  snackSalesByCinemaDTOs: SnackSalesByCinemaDTO[];
-  totalAmount: number;
+  snacks: SnackSalesByCinemaLineDTO[];
+  totalQuantity: number;
   cinema: CinemaView;
   from: string;
   to: string;
+  cinemaId: string;
 }
 
 export interface SnackSalesByCinemaQuery {
@@ -117,9 +116,20 @@ export const snackSalesByCinemaReport = async (
   const response = await $api<SnackReportByCinemaReportDTO>(
     `${CURRENT_SALES_URI}/reports/sales/snacks/cinema/${cinemaId}`,
     {
-      method: "POST",
+      method: "GET",
       params: query,
     }
+  );
+  return response;
+};
+
+export const snackSalesByCinemaReportPdf = async (
+  cinemaId: string,
+  query: SnackSalesByCinemaQuery
+): Promise<Blob> => {
+  const response = await postBlobToApi(
+    `${CURRENT_SALES_URI}/reports/sales/snacks/cinema/${cinemaId}/pdf`,
+    query
   );
   return response;
 };
@@ -180,6 +190,16 @@ export const reportDeBoletosVendidos = async (
   return response;
 };
 
+export const reportDeBoletosVendidosPdf = async (
+  query: TicketsSoldReportQuery
+): Promise<Blob> => {
+  const response = await getBlobFromApi(
+    `${CURRENT_SALES_URI}/reports/sales/tickets/pdf`,
+    query
+  );
+  return response;
+};
+
 // Top de cines con mayor volumen de ventas en un periodo
 // --- Interfaces for 'ventas por cine' report
 export interface CinemaSalesLineDTO {
@@ -210,6 +230,16 @@ export const reportDeVentasPorCine = async (
       method: "GET",
       params: query,
     }
+  );
+  return response;
+};
+
+export const reportDeVentasPorCinePdf = async (
+  query: CinemaSalesReportQuery
+): Promise<Blob> => {
+  const response = await getBlobFromApi(
+    `${CURRENT_SALES_URI}/reports/sales/cinemas/top/pdf`,
+    query
   );
   return response;
 };

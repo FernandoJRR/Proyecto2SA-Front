@@ -14,10 +14,10 @@
           </RouterLink>
           <div>
             <h1 class="text-2xl font-extrabold tracking-tight text-slate-900">
-              Snacks vendidos por cine
+              Boletos vendidos
             </h1>
             <p class="text-slate-600 text-sm">
-              Consulta las ventas de snacks por cine en el periodo seleccionado.
+              Consulta las funciones y la cantidad de boletos vendidos en el periodo seleccionado.
             </p>
           </div>
         </div>
@@ -42,31 +42,7 @@
     <!-- Filters -->
     <section class="max-w-7xl mx-auto mb-6" aria-label="Filtros del reporte">
       <div class="rounded-2xl border border-slate-200 bg-white shadow p-6 sm:p-8">
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-2">
-              Cine *
-            </label>
-            <Dropdown
-              v-model="form.cinemaId"
-              :options="cinemaOptions"
-              optionLabel="label"
-              optionValue="value"
-              placeholder="Selecciona el cine"
-              class="w-full"
-              :loading="cinemasLoading"
-              :disabled="cinemasLoading || !cinemaOptions.length"
-              :showClear="!companyScoped"
-              filter
-              filterPlaceholder="Buscar cine..."
-            />
-            <p v-if="!cinemasLoading && !cinemaOptions.length" class="mt-1 text-sm text-slate-500">
-              No hay cines disponibles para tu cuenta.
-            </p>
-            <p v-if="errors.cinemaId" class="mt-1 text-sm text-red-600">
-              {{ errors.cinemaId }}
-            </p>
-          </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-2">
               Desde * (fecha)
@@ -101,35 +77,29 @@
       </div>
     </section>
 
-    <!-- Summary -->
     <main class="max-w-7xl mx-auto space-y-4" role="main">
+      <!-- Summary -->
       <div
         v-if="report"
         class="rounded-2xl border border-slate-200 bg-white shadow p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
       >
         <div>
           <p class="text-xs uppercase text-slate-500 tracking-wide">
-            Cine
-          </p>
-          <p class="text-lg font-semibold text-slate-900">
-            {{ report.cinema?.name || report.cinema?.id || form.cinemaId }}
-          </p>
-          <p class="text-sm text-slate-600">
-            ID: <span class="font-mono">{{ report.cinema?.id || "—" }}</span>
-          </p>
-        </div>
-        <div class="text-right">
-          <p class="text-xs uppercase text-slate-500 tracking-wide">
             Periodo
           </p>
           <p class="text-sm text-slate-700">
             {{ formatDate(report.from) }} → {{ formatDate(report.to) }}
           </p>
-          <p class="mt-2 text-xs uppercase text-slate-500 tracking-wide">
-            Total snacks vendidos
+        </div>
+        <div class="text-right">
+          <p class="text-xs uppercase text-slate-500 tracking-wide">
+            Total boletos vendidos
           </p>
-          <p class="text-xl font-semibold text-emerald-600">
-            {{ formatNumber(report.totalQuantity) }}
+          <p class="text-xl font-semibold text-indigo-600">
+            {{ formatNumber(report.totalTickets) }}
+          </p>
+          <p class="text-xs text-slate-500 mt-1">
+            {{ rows.length }} funciones en el periodo.
           </p>
         </div>
       </div>
@@ -138,19 +108,19 @@
       <div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow">
         <DataTable
           :value="rows"
-          dataKey="snackId"
+          dataKey="functionId"
           :loading="loading"
           :paginator="true"
           :rows="10"
           :rowsPerPageOptions="[10, 20, 50]"
-          tableStyle="min-width: 60rem"
+          tableStyle="min-width: 70rem"
           stripedRows
           rowHover
         >
           <template #header>
             <div class="flex flex-wrap items-center justify-between gap-2">
               <span class="text-sm text-slate-600">
-                {{ rows.length }} snacks encontrados.
+                {{ rows.length }} funciones encontradas.
               </span>
               <Button
                 icon="pi pi-refresh"
@@ -163,21 +133,60 @@
             </div>
           </template>
 
-          <Column field="snackName" header="Snack">
+          <Column field="movie.title" header="Película">
             <template #body="{ data }">
               <div class="flex flex-col">
                 <span class="font-medium text-slate-800">
-                  {{ data.snackName || "—" }}
+                  {{ data.movie?.title || "—" }}
                 </span>
                 <span class="text-xs text-slate-500 font-mono">
-                  {{ data.snackId }}
+                  {{ data.movieId }}
                 </span>
               </div>
             </template>
           </Column>
-          <Column field="totalQuantity" header="Cantidad vendida">
+          <Column field="showtime.cinema.name" header="Cine">
             <template #body="{ data }">
-              <span class="font-semibold">{{ formatNumber(data.totalQuantity) }}</span>
+              <div class="flex flex-col">
+                <span class="font-medium text-slate-800">
+                  {{ data.showtime?.cinema?.name || "—" }}
+                </span>
+                <span class="text-xs text-slate-500 font-mono">
+                  {{ data.cinemaId }}
+                </span>
+              </div>
+            </template>
+          </Column>
+          <Column field="showtime.hallName" header="Sala">
+            <template #body="{ data }">
+              <div class="flex flex-col">
+                <span class="font-medium text-slate-800">
+                  {{ data.showtime?.hallName || "—" }}
+                </span>
+                <span class="text-xs text-slate-500 font-mono">
+                  {{ data.cinemaRoomId }}
+                </span>
+              </div>
+            </template>
+          </Column>
+          <Column field="showtime.startTime" header="Inicia">
+            <template #body="{ data }">
+              {{ formatDateTime(data.showtime?.startTime) }}
+            </template>
+          </Column>
+          <Column field="showtime.endTime" header="Finaliza">
+            <template #body="{ data }">
+              {{ formatDateTime(data.showtime?.endTime) }}
+            </template>
+          </Column>
+          <Column field="ticketsAvailable" header="Tickets disponibles" style="width: 8rem">
+            <template #body="{ data }">
+              <span class="font-semibold">{{ formatNumber(data.showtime?.ticketsAvailable) }}</span>
+            </template>
+          </Column>
+          <Column field="ticketsSold" header="Tickets vendidos" style="width: 8rem">
+            <template #body="{ data }">
+              <span class="font-semibold text-emerald-600">{{ formatNumber(data.ticketsSold) }}</span>
             </template>
           </Column>
         </DataTable>
@@ -187,124 +196,58 @@
     <PdfViewerModal
       v-model="showPdf"
       :blob="pdfBlob"
-      title="Reporte de snacks vendidos por cine"
-      file-name="reporte-snacks-cine.pdf"
+      title="Reporte de boletos vendidos"
+      file-name="reporte-boletos-vendidos.pdf"
     />
   </div>
 </template>
 
 <script lang="ts" setup>
-import { computed, reactive, ref, watch } from "vue";
+import { computed, reactive, ref } from "vue";
 import { RouterLink } from "vue-router";
-import { storeToRefs } from "pinia";
 import Button from "primevue/button";
 import Calendar from "primevue/calendar";
-import Dropdown from "primevue/dropdown";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import { toast } from "vue-sonner";
 import PdfViewerModal from "~/components/common/PdfViewerModal.vue";
 import {
-  snackSalesByCinemaReport,
-  snackSalesByCinemaReportPdf,
-  type SnackSalesByCinemaQuery,
-  type SnackReportByCinemaReportDTO,
-  type SnackSalesByCinemaLineDTO,
+  reportDeBoletosVendidos,
+  reportDeBoletosVendidosPdf,
+  type FunctionReportDTO,
+  type TicketsSoldReportDTO,
+  type TicketsSoldReportQuery,
 } from "~/lib/api/reportes/reportes";
-import {
-  getAllCinemas,
-  getCinemasByCompanyId,
-  type CinemaResponseDTO,
-} from "~/lib/api/cinema/cinema";
-import { useAuthStore } from "~/stores/auth";
-import { useCustomQuery } from "~/composables/useCustomQuery";
-
-const authStore = useAuthStore();
-const { companyId } = storeToRefs(authStore);
 
 const form = reactive<{
-  cinemaId: string | null;
   from: Date | null;
   to: Date | null;
 }>({
-  cinemaId: null,
   from: null,
   to: null,
 });
 
 const errors = reactive<{
-  cinemaId: string | null;
   from: string | null;
   to: string | null;
 }>({
-  cinemaId: null,
   from: null,
   to: null,
 });
 
-const report = ref<SnackReportByCinemaReportDTO | null>(null);
+const report = ref<TicketsSoldReportDTO | null>(null);
 const loading = ref(false);
 const pdfLoading = ref(false);
 const pdfBlob = ref<Blob | null>(null);
 const showPdf = ref(false);
 
-const {
-  state: cinemasState,
-  asyncStatus: cinemasStatus,
-  refetch: refetchCinemas,
-} = useCustomQuery({
-  key: ["snack-sales-report-cinemas", companyId.value ?? null],
-  query: () => {
-    const id = companyId.value?.trim();
-    return id ? getCinemasByCompanyId(id) : getAllCinemas();
-  },
+const rows = computed<FunctionReportDTO[]>(() => {
+  return report.value?.functions ?? [];
 });
 
-const cinemaOptions = computed<Array<{ label: string; value: string }>>(() =>
-  ((cinemasState.value.data ?? []) as CinemaResponseDTO[]).map((cinema) => ({
-    label: cinema.name,
-    value: cinema.id,
-  }))
-);
-
-const cinemasLoading = computed(() => cinemasStatus.value === "loading");
-const companyScoped = computed(() => !!companyId.value);
-
-const rows = computed<SnackSalesByCinemaLineDTO[]>(() => {
-  return report.value?.snacks ?? [];
-});
-
-const filtersApplied = computed(
-  () => !!form.cinemaId || !!form.from || !!form.to
-);
-
-watch(companyId, () => {
-  form.cinemaId = null;
-  refetchCinemas();
-});
-
-watch(
-  cinemaOptions,
-  (options) => {
-    if (!companyScoped.value) return;
-    if (!options.length) {
-      form.cinemaId = null;
-      return;
-    }
-    if (!form.cinemaId || !options.some((opt) => opt.value === form.cinemaId)) {
-      form.cinemaId = options[0].value;
-    }
-  },
-  { immediate: true }
-);
+const filtersApplied = computed(() => !!form.from || !!form.to);
 
 function validate() {
-  const cinemaValue =
-    typeof form.cinemaId === "string" ? form.cinemaId.trim() : "";
-  if (cinemaValue) {
-    form.cinemaId = cinemaValue;
-  }
-  errors.cinemaId = cinemaValue ? null : "Selecciona el cine.";
   errors.from = form.from ? null : "Selecciona una fecha de inicio.";
   errors.to = form.to ? null : "Selecciona una fecha final.";
 
@@ -314,7 +257,7 @@ function validate() {
     }
   }
 
-  return !errors.cinemaId && !errors.from && !errors.to;
+  return !errors.from && !errors.to;
 }
 
 function toDateString(date: Date | null) {
@@ -325,7 +268,7 @@ function toDateString(date: Date | null) {
   return `${year}-${month}-${day}`;
 }
 
-function buildQuery(): SnackSalesByCinemaQuery | null {
+function buildQuery(): TicketsSoldReportQuery | null {
   if (!validate()) return null;
   return {
     from: toDateString(form.from)!,
@@ -336,15 +279,13 @@ function buildQuery(): SnackSalesByCinemaQuery | null {
 async function runSearch() {
   const query = buildQuery();
   if (!query) return;
-  const cinemaId = form.cinemaId;
-  if (!cinemaId) return;
 
   loading.value = true;
   try {
-    const response = await snackSalesByCinemaReport(cinemaId, query);
+    const response = await reportDeBoletosVendidos(query);
     report.value = response;
-    if (!response.snacks?.length) {
-      toast.info("No se registraron ventas de snacks en ese periodo.");
+    if (!response.functions.length) {
+      toast.info("No se registraron funciones en ese periodo.");
     }
   } catch (error: any) {
     const message =
@@ -360,12 +301,10 @@ async function runSearch() {
 async function generatePdf() {
   const query = buildQuery();
   if (!query) return;
-  const cinemaId = form.cinemaId;
-  if (!cinemaId) return;
 
   pdfLoading.value = true;
   try {
-    const blob = await snackSalesByCinemaReportPdf(cinemaId, query);
+    const blob = await reportDeBoletosVendidosPdf(query);
     pdfBlob.value = blob;
     showPdf.value = true;
   } catch (error: any) {
@@ -401,6 +340,19 @@ function formatDate(value?: string | null) {
     const date = new Date(value);
     return new Intl.DateTimeFormat("es-GT", {
       dateStyle: "medium",
+    }).format(date);
+  } catch {
+    return value;
+  }
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return "—";
+  try {
+    const date = new Date(value);
+    return new Intl.DateTimeFormat("es-GT", {
+      dateStyle: "medium",
+      timeStyle: "short",
     }).format(date);
   } catch {
     return value;
