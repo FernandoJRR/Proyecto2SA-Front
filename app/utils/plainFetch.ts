@@ -15,6 +15,7 @@ export const $api = $fetch.create({
   onRequest({ options }) {
     const userAuth = getCookie(AUTH_COOKIE_NAME);
     options.headers.set("Authorization", userAuth ? `Bearer ${userAuth}` : "");
+    options.headers.set("ngrok-skip-browser-warning", "1");
   },
   async onResponseError({ response }) {
     const errorData = await response._data;
